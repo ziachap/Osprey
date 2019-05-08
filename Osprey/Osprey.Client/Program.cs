@@ -9,6 +9,7 @@ namespace Osprey.Client
 		{
 			Console.WriteLine("========== OSPREY CLIENT ==========");
 
+			using (Osprey.Default())
 			using (Osprey.Join("osprey.client"))
 			{
 				Console.WriteLine("Running...");
