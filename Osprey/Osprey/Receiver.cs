@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -10,48 +11,46 @@ namespace Osprey
 {
     public class Receiver
     {
-        private readonly UdpClient _client;
-        public List<NodeInfo> Discovered { get; }
+        private readonly UdpChannel _client;
 
-        public Receiver(UdpClient client)
+        private ConcurrentDictionary<string, NodeInfoEntry> Discovered { get; }
+        public IEnumerable<NodeInfo> Active => Discovered.Values.Where(x => x.Active).Select(x => x.Node);
+
+        public Receiver(UdpChannel client)
         {
             _client = client;
-            Discovered = new List<NodeInfo>();
+            Discovered = new ConcurrentDictionary<string, NodeInfoEntry>();
         }
 
         public void Start()
         {
-            var from = new IPEndPoint(0, 0);
             Task.Factory.StartNew(() =>
             {
                 while (true)
                 {
-                    var recvBuffer = _client.Receive(ref from);
-                    var message = Encoding.UTF8.GetString(recvBuffer);
-                    var nodeInfo = Osprey.Serializer.Deserialize<NodeInfo>(message);
+                    var nodeInfo = _client.Receive<NodeInfo>();
+                    var nodeInfoEntry = new NodeInfoEntry(nodeInfo);
 
-                    if (Discovered.Exists(MatchesId))
-                    {
-                        var index = Discovered.FindIndex(MatchesId);
-                        Discovered[index] = nodeInfo;
-                    }
-                    else
-                    {
-                        Discovered.Add(nodeInfo);
-                    }
+                    Discovered.AddOrUpdate(nodeInfo.Id, nodeInfoEntry, (id, n) => nodeInfoEntry);
 
-                    Console.WriteLine("Discovered:");
-                    Console.WriteLine(string.Join(Environment.NewLine, Discovered.Select(x => $"{x.Id} | {x.Name} | {x.Address}")));
-
-                    bool MatchesId(NodeInfo x) => x.Id == nodeInfo.Id;
+                    Console.WriteLine("-- Active --");
+                    Console.WriteLine(string.Join(Environment.NewLine,
+                        Active.Select(x => $"{x.Id} | {x.Name} | {x.Address}")));
                 }
-
             }, TaskCreationOptions.LongRunning);
         }
-    }
 
-    public class Broadcaster
-    {
+        private class NodeInfoEntry
+        {
+            public NodeInfoEntry(NodeInfo node)
+            {
+                Node = node;
+                Discovered = DateTime.Now;
+            }
 
+            public NodeInfo Node { get; }
+            private DateTime Discovered { get; }
+            public bool Active => DateTime.Now < Discovered.AddSeconds(1.5);
+        }
     }
 }

@@ -20,7 +20,7 @@ namespace Osprey
         public Receiver Receiver { get; private set; }
 
         private readonly IPAddress _ip;
-        private UdpClient _client;
+        private readonly UdpChannel _channel;
 
         public Node(string id, string name, IPAddress ip, int port)
         {
@@ -29,30 +29,20 @@ namespace Osprey
             _ip = ip;
             Port = port;
             Address = $"{ip}:{Port}";
+            _channel = new UdpChannel(new IPEndPoint(_ip, Port));
         }
 
         public void Start()
         {
-            _client = new UdpClient
-            {
-                EnableBroadcast = true
-            };
-            _client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            _client.Client.Bind(new IPEndPoint(_ip, Port));
 
-            var message = $"{Id} | {Name} | {Address}";
-            var from = new IPEndPoint(0, 0);
-            
-            Receiver = new Receiver(_client);
+            Receiver = new Receiver(_channel);
             Receiver.Start();
 
             Task.Run(() =>
             {
                 while (true)
                 {
-                    var serialized = Osprey.Serializer.Serialize((NodeInfo)this);
-                    var data = Encoding.UTF8.GetBytes(serialized);
-                    _client.Send(data, data.Length, "255.255.255.255", Port);
+                    _channel.Send(this);
                     Thread.Sleep(1000);
                 }
             });
@@ -60,7 +50,7 @@ namespace Osprey
 
         public void Dispose()
         {
-            _client.Dispose();
+            _channel?.Dispose();
         }
     }
 }

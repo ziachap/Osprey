@@ -14,6 +14,8 @@ namespace Osprey.Client
 			{
 				Console.WriteLine("Running...");
 
+                Console.ReadKey();
+
 				while (true)
 				{
 					Thread.Sleep(1000);
