@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using Osprey.Communication;
 
 namespace Osprey
 {
@@ -39,6 +40,11 @@ namespace Osprey
                 }
             }, TaskCreationOptions.LongRunning);
         }
+
+	    public NodeInfo FindService(string service)
+	    {
+		    return Active.FirstOrDefault(x => x.Name == service) ?? throw new Exception("Service not found");
+	    }
 
         private class NodeInfoEntry
         {

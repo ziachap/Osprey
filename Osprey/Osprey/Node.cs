@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using Osprey.Communication;
 
 namespace Osprey
 {
@@ -15,38 +12,33 @@ namespace Osprey
         public int Port { get; set; }
     }
 
-    public class Node : NodeInfo, IDisposable
+    public class Node : IDisposable
     {
+        public NodeInfo Info { get; private set; }
         public Receiver Receiver { get; private set; }
-
-        private readonly IPAddress _ip;
+        public Broadcaster Broadcaster { get; private set; }
+		
         private readonly UdpChannel _channel;
 
         public Node(string id, string name, IPAddress ip, int port)
         {
-            Id = id;
-            Name = name;
-            _ip = ip;
-            Port = port;
-            Address = $"{ip}:{Port}";
-            _channel = new UdpChannel(new IPEndPoint(_ip, Port));
+			Info = new NodeInfo
+			{
+				Id = id,
+				Name = name,
+				Port = port,
+				Address = $"{ip}:{port}"
+			};
+            _channel = new UdpChannel(new IPEndPoint(ip, port));
         }
 
         public void Start()
         {
-
             Receiver = new Receiver(_channel);
             Receiver.Start();
-
-            Task.Run(() =>
-            {
-                while (true)
-                {
-                    _channel.Send(this);
-                    Thread.Sleep(1000);
-                }
-            });
-        }
+	        Broadcaster = new Broadcaster(_channel, Info);
+	        Broadcaster.Start();
+		}
 
         public void Dispose()
         {
