@@ -22,13 +22,13 @@ namespace Osprey
     public class Node : IDisposable
     {
         public NodeInfo Info { get; private set; }
-        public Receiver Receiver { get; private set; }
-        public Broadcaster Broadcaster { get; private set; }
-        public Dictionary<string, IHandler> Endpoints { get; private set; }
+        internal Receiver Receiver { get; private set; }
+        internal Broadcaster Broadcaster { get; private set; }
+        internal Dictionary<string, IHandler> Endpoints { get; private set; }
 		
         private readonly UdpChannel _broadcastChannel;
 
-        public Node(string id, string name, IPAddress ip)
+        internal Node(string id, string name, IPAddress ip)
         {
             Endpoints = new Dictionary<string, IHandler>();
 
@@ -61,7 +61,7 @@ namespace Osprey
             }
         }
 
-        public void Start()
+        internal void Start()
         {
             Receiver = new Receiver(_broadcastChannel);
             Receiver.Start();
@@ -80,7 +80,7 @@ namespace Osprey
             Endpoints[handler.Endpoint] = handler;
         }
 
-        public void InvokeEndpoint(string serialized)
+        internal void InvokeEndpoint(string serialized)
         {
             var deserialized = Osprey.Serializer.Deserialize<EmptyMessage>(serialized);
             Endpoints[deserialized.Endpoint].Handle(serialized);
