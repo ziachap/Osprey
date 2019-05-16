@@ -34,16 +34,16 @@ namespace Osprey
 
                     Discovered.AddOrUpdate(nodeInfo.Id, nodeInfoEntry, (id, n) => nodeInfoEntry);
 
-                    Console.WriteLine("-- Active --");
-                    Console.WriteLine(string.Join(Environment.NewLine,
-                        Active.Select(x => $"{x.Id} | {x.Name} | {x.Address}")));
+                    //Console.WriteLine("-- Active --");
+                    //Console.WriteLine(string.Join(Environment.NewLine, Active.Select(x => $"{x.Id} | {x.Name} | {x.Ip}")));
                 }
             }, TaskCreationOptions.LongRunning);
         }
 
 	    public NodeInfo FindService(string service)
 	    {
-		    return Active.FirstOrDefault(x => x.Name == service) ?? throw new Exception("Service not found");
+		    return Active.Where(x => x.Name == service).OrderBy(x => Guid.NewGuid()).FirstOrDefault() 
+                   ?? throw new Exception("Service not found");
 	    }
 
         private class NodeInfoEntry

@@ -20,11 +20,11 @@ namespace Osprey.Communication
             _client.Client.Bind(endpoint);
         }
 
-        public void Send<T>(T obj)
+        public void Send<T>(string ip, T obj)
         {
             var serialized = Osprey.Serializer.Serialize(obj);
             var bytes = Encoding.ASCII.GetBytes(serialized);
-            _client.Send(bytes, bytes.Length, "255.255.255.255", Port);
+            _client.Send(bytes, bytes.Length, ip, Port);
         }
 
         public T Receive<T>()

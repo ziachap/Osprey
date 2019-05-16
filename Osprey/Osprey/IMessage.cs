@@ -2,14 +2,21 @@
 
 namespace Osprey
 {
-	public interface IMessage<T>
+	public interface IMessage
 	{
 		string Service { get; }
 
 		string Endpoint { get; }
 	}
 
-	public class EventMessage<T> : IMessage<T>
+    internal sealed class EmptyMessage : IMessage
+    {
+        public string Service { get; set; }
+
+        public string Endpoint { get; set; }
+    }
+
+    public class MultiCastMessage<T> : IMessage
 	{
 		public string Service { get; set; }
 
@@ -18,29 +25,14 @@ namespace Osprey
 		public T Payload { get; set; }
 	}
 
-	public class RequestMessage<T> : IMessage<T>
+	public class RequestMessage<T> : IMessage
 	{
 		public string Service { get; set; }
 
 		public string Endpoint { get; set; }
 
-		public NodeInfo Sender { get; set; }
+        public NodeInfo Sender => Osprey.Node.Info;
 
 		public T Payload { get; set; }
 	}
-
-	public class HttpMessage<T, Y> : RequestMessage<T>
-	{
-		public HttpVerb RequestType { get; set; }
-
-		public enum HttpVerb
-		{
-			GET,
-			POST,
-			PUT,
-			DELETE
-		}
-	}
-
-
 }

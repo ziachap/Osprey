@@ -11,7 +11,7 @@ namespace Osprey.Client.Api
 		{
 			Get("/test", parameters =>
 			{
-				return Response.AsJson("hello");
+				return Response.AsJson("This is " + Osprey.Node.Info.Id);
 			});
 		}
 	}

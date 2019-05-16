@@ -36,11 +36,13 @@ namespace Osprey
 			var ip = GetLocalIPAddress();
 			var id = Guid.NewGuid().ToString();
 
-            Node = new Node(id, service, ip, 12345);
+            Node = new Node(id, service, ip);
             Node.Start();
 
-			return Node;
-		}
+            Network = new Network();
+
+            return Node;
+        }
 		
 		private static IPAddress GetLocalIPAddress()
 		{
@@ -54,6 +56,5 @@ namespace Osprey
 			}
 			throw new Exception("No network adapters with an IPv4 address in the system!");
 		}
-
     }
 }
