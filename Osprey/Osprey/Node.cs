@@ -6,8 +6,19 @@ using Osprey.Communication;
 
 namespace Osprey
 {
+    public class Endpoint
+    {
+        public string Name { get; set; }
+        public string Address { get; set; }
+    }
+
     public class NodeInfo
     {
+        public NodeInfo()
+        {
+            Endpoints = new List<Endpoint>();
+        }
+
         public string Id { get; set; }
         public string Name { get; set; }
         public string Ip { get; set; }
@@ -17,6 +28,7 @@ namespace Osprey
         public string UdpAddress => Ip + ":" + UdpPort;
         public string TcpAddress => Ip + ":" + TcpPort;
 
+        public List<Endpoint> Endpoints { get; }
     }
 
     public class Node : IDisposable
@@ -24,29 +36,28 @@ namespace Osprey
         public NodeInfo Info { get; private set; }
         internal Receiver Receiver { get; private set; }
         internal Broadcaster Broadcaster { get; private set; }
-        internal Dictionary<string, IHandler> Endpoints { get; private set; }
 		
         private readonly UdpChannel _broadcastChannel;
 
         internal Node(string id, string name, IPAddress ip)
         {
-            Endpoints = new Dictionary<string, IHandler>();
-
             Info = new NodeInfo
 			{
 				Id = id,
 				Name = name,
 				Ip = ip.ToString(),
+                Endpoints =
+                {
+                    new Endpoint(){Name = "test1", Address = "123.1.1.3:34567"},
+                    new Endpoint(){Name = "test2", Address = "123.1.1.3:94841"},
+                }
 			};
             _broadcastChannel = new UdpChannel(new IPEndPoint(IPAddress.Loopback, 12345));
-
-            Info.UdpPort = GetUdpPort();
-            Info.TcpPort = GetTcpPort();
             
             int GetUdpPort()
             {
-                UdpClient l = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
-                int p = ((IPEndPoint)l.Client.LocalEndPoint).Port;
+                var l = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+                var p = ((IPEndPoint)l.Client.LocalEndPoint).Port;
                 l.Close();
                 return p;
             }
@@ -77,13 +88,13 @@ namespace Osprey
 
         public void RegisterEndpoint(IHandler handler)
         {
-            Endpoints[handler.Endpoint] = handler;
+            //UdpEndpoints[handler.Endpoint] = handler;
         }
 
         internal void InvokeEndpoint(string serialized)
         {
             var deserialized = Osprey.Serializer.Deserialize<EmptyMessage>(serialized);
-            Endpoints[deserialized.Endpoint].Handle(serialized);
+            //UdpEndpoints[deserialized.Endpoint].Handle(serialized);
         }
 
         public void Dispose()

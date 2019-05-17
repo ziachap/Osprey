@@ -34,8 +34,16 @@ namespace Osprey
 
                     Discovered.AddOrUpdate(nodeInfo.Id, nodeInfoEntry, (id, n) => nodeInfoEntry);
 
-                    //Console.WriteLine("-- Active --");
-                    //Console.WriteLine(string.Join(Environment.NewLine, Active.Select(x => $"{x.Id} | {x.Name} | {x.Ip}")));
+                    Console.WriteLine("-- Active --");
+                    foreach (var node in Active)
+                    {
+                        Console.WriteLine($"{node.Id} | {node.Name} | {node.Ip}");
+                        foreach (var endpoint in node.Endpoints)
+                        {
+                            Console.WriteLine($"    {endpoint.Name} | {endpoint.Address}");
+                        }
+                    }
+                    
                 }
             }, TaskCreationOptions.LongRunning);
         }

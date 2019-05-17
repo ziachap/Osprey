@@ -15,7 +15,7 @@ namespace Osprey
 				case HttpMessage<TRequest, TResponse> httpMessage:
 					return HttpRequest(httpMessage);
                 default:
-					throw new Exception($"Communication type '{message.GetType().Name}' not supported for request/response");
+					throw new NotSupportedException($"Communication type '{message.GetType().Name}' not supported for request/response communication");
 			}
 		}
 
@@ -28,8 +28,14 @@ namespace Osprey
 			{
 				case HttpVerb.GET:
 					return Osprey.Http.Get<TResponse>(endpoint, CancellationToken.None);
-				default:
-					throw new Exception("HttpVerb not supported");
+                case HttpVerb.POST:
+                    return Osprey.Http.Post<TRequest, TResponse>(endpoint, httpMessage.Payload, CancellationToken.None);
+                case HttpVerb.PUT:
+                    return Osprey.Http.Put<TRequest, TResponse>(endpoint, httpMessage.Payload, CancellationToken.None);
+                case HttpVerb.DELETE:
+                    return Osprey.Http.Delete<TResponse>(endpoint, CancellationToken.None);
+                default:
+					throw new NotSupportedException("HttpVerb not supported");
 			}
 		}
 
@@ -40,7 +46,7 @@ namespace Osprey
                 case MultiCastMessage<TMessage> multiCastMessage:
                     return SendMultiCast(multiCastMessage);
                 default:
-                    throw new Exception($"Communication type '{message.GetType().Name}' not supported form transmission");
+                    throw new NotSupportedException($"Communication type '{message.GetType().Name}' not supported for one-way communication");
             }
         }
 
