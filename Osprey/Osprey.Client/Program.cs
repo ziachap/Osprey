@@ -12,7 +12,9 @@ using Nancy.TinyIoc;
 namespace Osprey.Client
 {
 	class Program
-	{
+    {
+        private static int HttpRefreshMilliseconds { get; } = 4000;
+
 		static void Main(string[] args)
 		{
 			Console.WriteLine("========== OSPREY CLIENT ==========");
@@ -34,7 +36,7 @@ namespace Osprey.Client
                     Console.WriteLine($"I just received on multicast: {msg}");
                 }));
 
-                StartSendingMultiCast();
+                //StartSendingMultiCast();
                 StartSendingHttp();
 
                 while (true)
@@ -43,6 +45,7 @@ namespace Osprey.Client
 				}
 			}
 		}
+
         private static void StartSendingMultiCast()
         {
             Task.Factory.StartNew(() =>
@@ -99,7 +102,7 @@ namespace Osprey.Client
                         Console.WriteLine(ex.Message);
                     }
 
-                    Thread.Sleep(3000);
+                    Thread.Sleep(HttpRefreshMilliseconds);
                 }
             }, TaskCreationOptions.LongRunning);
         }

@@ -50,7 +50,9 @@ namespace Osprey
                 {
                     new Endpoint(){Name = "test1", Address = "123.1.1.3:34567"},
                     new Endpoint(){Name = "test2", Address = "123.1.1.3:94841"},
-                }
+                },
+                UdpPort = GetUdpPort(),
+                TcpPort = GetTcpPort(),
 			};
             _broadcastChannel = new UdpChannel(new IPEndPoint(IPAddress.Loopback, 12345));
             
