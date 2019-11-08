@@ -7,7 +7,7 @@ using (Osprey.Join("osprey.server"))
 using (new TcpServer("guava"))
 using (new HttpServer<DefaultStartup<DefaultNancyBootstrapper>>("mango"))
 {
-    Console.ReadKey()
+    Console.ReadKey();
 }
 ```
 
