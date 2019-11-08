@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Osprey
-{
+{/*
 	public class Network
 	{
 		public Task<TResponse> Send<TRequest, TResponse>(IMessage message)
@@ -20,9 +20,12 @@ namespace Osprey
 		}
 
 		private Task<TResponse> HttpRequest<TRequest, TResponse>(HttpMessage<TRequest, TResponse> httpMessage)
-		{
-			var service = Osprey.Node.Receiver.FindService(httpMessage.Service);
-            var endpoint = $"http://{service.TcpAddress}/{httpMessage.Endpoint}";
+        {
+            var url = Osprey.Node.Receiver
+                .Locate(httpMessage.Service)
+                .Service<HttpService>(httpMessage.Host)
+                .Url;
+            var endpoint = $"http://{url}/{httpMessage.Endpoint}";
 
             switch (httpMessage.RequestType)
 			{
@@ -59,5 +62,5 @@ namespace Osprey
 
             return Task.Run(() => { });
         }
-    }
+    }*/
 }

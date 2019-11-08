@@ -2,35 +2,15 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Osprey.Communication;
+using Osprey.ServiceDiscovery;
+using Osprey.Utilities;
 
+[assembly: InternalsVisibleTo("Osprey.Monitor")]
 namespace Osprey
 {
-    public class Endpoint
-    {
-        public string Name { get; set; }
-        public string Address { get; set; }
-    }
-
-    public class NodeInfo
-    {
-        public NodeInfo()
-        {
-            Endpoints = new List<Endpoint>();
-        }
-
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Ip { get; set; }
-        public int UdpPort { get; set; }
-        public int TcpPort { get; set; }
-
-        public string UdpAddress => Ip + ":" + UdpPort;
-        public string TcpAddress => Ip + ":" + TcpPort;
-
-        public List<Endpoint> Endpoints { get; }
-    }
-
     public class Node : IDisposable
     {
         public NodeInfo Info { get; private set; }
@@ -46,32 +26,9 @@ namespace Osprey
 				Id = id,
 				Name = name,
 				Ip = ip.ToString(),
-                Endpoints =
-                {
-                    new Endpoint(){Name = "test1", Address = "123.1.1.3:34567"},
-                    new Endpoint(){Name = "test2", Address = "123.1.1.3:94841"},
-                },
-                UdpPort = GetUdpPort(),
-                TcpPort = GetTcpPort(),
+                UdpPort = Address.GetUdpPort(),
 			};
             _broadcastChannel = new UdpChannel(new IPEndPoint(IPAddress.Loopback, 12345));
-            
-            int GetUdpPort()
-            {
-                var l = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
-                var p = ((IPEndPoint)l.Client.LocalEndPoint).Port;
-                l.Close();
-                return p;
-            }
-
-            int GetTcpPort()
-            {
-                var listener = new TcpListener(IPAddress.Any, 0);
-                listener.Start();
-                var p = ((IPEndPoint)listener.LocalEndpoint).Port;
-                listener.Stop();
-                return p;
-            }
         }
 
         internal void Start()
@@ -84,19 +41,13 @@ namespace Osprey
             Console.WriteLine($"Node started:");
             Console.WriteLine($"  Id:       {Info.Id}");
             Console.WriteLine($"  Service:  {Info.Name}");
-            Console.WriteLine($"  TCP:      {Info.TcpAddress}");
             Console.WriteLine($"  UDP:      {Info.UdpAddress}");
         }
 
-        public void RegisterEndpoint(IHandler handler)
+        public void Register(IService host)
         {
-            //UdpEndpoints[handler.Endpoint] = handler;
-        }
-
-        internal void InvokeEndpoint(string serialized)
-        {
-            var deserialized = Osprey.Serializer.Deserialize<EmptyMessage>(serialized);
-            //UdpEndpoints[deserialized.Endpoint].Handle(serialized);
+            if(Info.Services.ContainsKey(host.Name)) throw new Exception("Already registered: " + host.Name);
+            Info.Services[host.Name] = host;
         }
 
         public void Dispose()

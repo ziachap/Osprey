@@ -1,126 +1,57 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Builder;
 using Nancy;
-using Nancy.Owin;
-using Nancy.TinyIoc;
+using Osprey.Http;
+using Osprey.Tcp;
 
-namespace Osprey.Client
+namespace Osprey.Demo.Client
 {
-	class Program
+    class Program
     {
-        private static int HttpRefreshMilliseconds { get; } = 4000;
-
-		static void Main(string[] args)
-		{
-			Console.WriteLine("========== OSPREY CLIENT ==========");
-
-			using (Osprey.Default())
-			using (Osprey.Join("osprey.client"))
-			{
-                var host = new WebHostBuilder()
-                    .UseContentRoot(Directory.GetCurrentDirectory())
-                    .UseKestrel()
-                    .UseStartup<Startup>()
-                    .UseUrls("http://" + Osprey.Node.Info.TcpAddress)
-                    .Build();
-                
-                Task.Factory.StartNew(host.Run, TaskCreationOptions.LongRunning);
-
-                Osprey.Node.RegisterEndpoint(new MultiCastHandler<string>("multitest", msg =>
-                {
-                    Console.WriteLine($"I just received on multicast: {msg}");
-                }));
-
-                //StartSendingMultiCast();
-                StartSendingHttp();
-
-                while (true)
-				{
-					Thread.Sleep(1000);
-				}
-			}
-		}
-
-        private static void StartSendingMultiCast()
+        static void Main(string[] args)
         {
-            Task.Factory.StartNew(() =>
+            Console.WriteLine("========== OSPREY CLIENT ==========");
+
+            using (Osprey.Default())
+            using (Osprey.Join("osprey.client"))
+            using (new TcpServer("tcp1"))
+            using (new TcpServer("tcp2"))
+            using (new TcpServer("tcp3"))
+            using (new HttpServer<DefaultStartup<DefaultNancyBootstrapper>>("http"))
             {
+                ConnectToTcpServer();
+
                 while (true)
                 {
-                    try
-                    {
-                        var task = Osprey.Network.Send<string>(new MultiCastMessage<string>
-                        {
-                            Service = "osprey.client",
-                            Endpoint = "multitest",
-                            Payload = "oranges"
-                        });
-
-                        task.Wait();
-
-                        Console.WriteLine("Sent a multicast message");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
-
-                    Thread.Sleep(3000);
+                    Thread.Sleep(1000);
                 }
-            }, TaskCreationOptions.LongRunning);
+            }
         }
 
-        private static void StartSendingHttp()
+        private static void ConnectToTcpServer()
         {
-            Task.Factory.StartNew(() =>
+            var connected = false;
+            while (!connected)
             {
-                while (true)
+                Console.WriteLine("Looking for server...");
+
+                try
                 {
-                    try
-                    {
-                        var task = Osprey.Network.Send<string, string>(new HttpMessage<string, string>
-                        {
-                            Service = "osprey.client",
-                            Endpoint = "test",
-                            Payload = "apples",
-                            RequestType = HttpVerb.GET
-                        });
+                    Osprey.Locate("osprey.server")
+                        .Stream("mango")
+                        .Subscribe(msg => Console.WriteLine("MSG: " + msg.ToString()));
 
-                        task.Wait();
-
-                        var response = task.Result;
-
-                        Console.WriteLine("RESPONSE: " + response);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
-
-                    Thread.Sleep(HttpRefreshMilliseconds);
+                    connected = true;
                 }
-            }, TaskCreationOptions.LongRunning);
-        }
-    }
+                catch
+                {
+                    // ignored
+                }
 
-    public class Startup
-	{
-        public void Configure(IApplicationBuilder app)
-        {
-            app.UseOwin(x => x.UseNancy(opt => opt.Bootstrapper = new Bootstrapper()));
-        }
-    }
+                Thread.Sleep(2000);
+            }
 
-    public class Bootstrapper : DefaultNancyBootstrapper
-    {
-        protected override void ConfigureApplicationContainer(TinyIoCContainer container)
-        {
-            base.ConfigureApplicationContainer(container);
+            Console.WriteLine("Connected.");
         }
     }
 }

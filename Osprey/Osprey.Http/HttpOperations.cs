@@ -1,31 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
-using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Osprey.Communication
+namespace Osprey.Http
 {
+    /*
 	public interface IHttp
 	{
 		Task<T> Get<T>(string url, CancellationToken cancellationToken);
 		Task<T> Post<TBody, T>(string url, TBody data, CancellationToken cancellationToken);
 		Task<T> Put<TBody, T>(string url, TBody data, CancellationToken cancellationToken);
 		Task<T> Delete<T>(string url, CancellationToken cancellationToken);
-	}
+	}*/
 
-	public class Http : IHttp
+	public static class HttpOperations // TODO: Give this a better name
 	{
 		private static HttpClient Client()
 		{
 			return new HttpClient();
 		}
 
-		public async Task<T> Get<T>(string url, CancellationToken cancellationToken)
+		public static async Task<T> Get<T>(string url, CancellationToken cancellationToken)
 		{
             var message = new HttpRequestMessage()
             {
@@ -39,7 +37,7 @@ namespace Osprey.Communication
             return response;
         }
 
-		public async Task<T> Post<TBody, T>(string url, TBody data, CancellationToken cancellationToken)
+		public static async Task<T> Post<TBody, T>(string url, TBody data, CancellationToken cancellationToken)
         {
             var message = new HttpRequestMessage()
             {
@@ -54,7 +52,7 @@ namespace Osprey.Communication
             return response;
         }
 
-		public async Task<T> Put<TBody, T>(string url, TBody data, CancellationToken cancellationToken)
+		public static async Task<T> Put<TBody, T>(string url, TBody data, CancellationToken cancellationToken)
         {
             var message = new HttpRequestMessage()
             {
@@ -69,7 +67,7 @@ namespace Osprey.Communication
             return response;
         }
 
-		public async Task<T> Delete<T>(string url, CancellationToken cancellationToken)
+		public static async Task<T> Delete<T>(string url, CancellationToken cancellationToken)
         {
             var message = new HttpRequestMessage()
             {
@@ -83,7 +81,7 @@ namespace Osprey.Communication
             return response;
         }
 
-        private async Task<T> Send<T>(HttpRequestMessage message, CancellationToken cancellationToken)
+        private static async Task<T> Send<T>(HttpRequestMessage message, CancellationToken cancellationToken)
         {
             using (var client = Client())
             {
@@ -106,13 +104,14 @@ namespace Osprey.Communication
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
+
                 var deserialized = Osprey.Serializer.Deserialize<T>(content);
 
                 return deserialized;
             }
         }
 
-        private Stream ToStream(object data)
+        private static Stream ToStream(object data)
         {
             var stream = new MemoryStream();
             var formatter = new BinaryFormatter();

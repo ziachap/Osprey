@@ -2,13 +2,10 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 using Osprey.Communication;
 
-namespace Osprey
+namespace Osprey.ServiceDiscovery
 {
     public class Receiver
     {
@@ -33,26 +30,18 @@ namespace Osprey
                     var nodeInfoEntry = new NodeInfoEntry(nodeInfo);
 
                     Discovered.AddOrUpdate(nodeInfo.Id, nodeInfoEntry, (id, n) => nodeInfoEntry);
-
-                    Console.WriteLine("-- Active --");
-                    foreach (var node in Active)
-                    {
-                        Console.WriteLine($"{node.Id} | {node.Name} | {node.Ip}");
-                        foreach (var endpoint in node.Endpoints)
-                        {
-                            Console.WriteLine($"    {endpoint.Name} | {endpoint.Address}");
-                        }
-                    }
-                    
                 }
             }, TaskCreationOptions.LongRunning);
         }
 
-	    public NodeInfo FindService(string service)
-	    {
-		    return Active.Where(x => x.Name == service).OrderBy(x => Guid.NewGuid()).FirstOrDefault() 
+        public NodeInfo Locate(string service)
+        {
+            return Active
+                       .Where(x => x.Name == service)
+                       .OrderBy(x => Guid.NewGuid())
+                       .FirstOrDefault()
                    ?? throw new Exception("Service not found");
-	    }
+        }
 
         private class NodeInfoEntry
         {

@@ -3,15 +3,14 @@ using System.Net;
 using System.Net.Sockets;
 using Osprey.Communication;
 using Osprey.Serialization;
+using Osprey.Utilities;
 
 namespace Osprey
 {
 	public static class Osprey
 	{
         public static Node Node { get; set; }
-        public static Network Network { get; set; }
         public static ISerializer Serializer { get; set; }
-        public static IHttp Http { get; set; }
 
         private class DisposeOsprey : IDisposable
         { 
@@ -20,41 +19,33 @@ namespace Osprey
                 Node.Dispose();
                 Node = null;
                 Serializer = null;
-	            Http = null;
             }
         }
 
         public static IDisposable Default()
         {
            Serializer = new JsonSerializer();
-		   Http = new Http();
            return new DisposeOsprey();
         }
 
-		public static IDisposable Join(string service)
+		public static Node Join(string service)
 		{
-			var ip = GetLocalIPAddress();
+            if (Node != null) throw new Exception("Cannot join the network more than once.");
+
+			var ip = Address.GetLocalIpAddress();
 			var id = Guid.NewGuid().ToString();
 
             Node = new Node(id, service, ip);
             Node.Start();
 
-            Network = new Network();
-
             return Node;
         }
-		
-		private static IPAddress GetLocalIPAddress()
-		{
-			var host = Dns.GetHostEntry(Dns.GetHostName());
-			foreach (var ip in host.AddressList)
-			{
-				if (ip.AddressFamily == AddressFamily.InterNetwork)
-				{
-					return ip;
-				}
-			}
-			throw new Exception("No network adapters with an IPv4 address in the system!");
-		}
+
+        public static NodeInfo Locate(string node)
+        {
+            if (Node == null) throw new Exception("Caller has not joined an Osprey network");
+
+            return Node.Receiver.Locate(node);
+        }
     }
 }

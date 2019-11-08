@@ -5,13 +5,14 @@ namespace Osprey
 	public interface IMessage
 	{
 		string Service { get; }
-
+        string Host { get; }
 		string Endpoint { get; }
 	}
 
     internal sealed class EmptyMessage : IMessage
     {
         public string Service { get; set; }
+        public string Host { get; set; }
 
         public string Endpoint { get; set; }
     }
@@ -19,8 +20,9 @@ namespace Osprey
     public class MultiCastMessage<T> : IMessage
 	{
 		public string Service { get; set; }
+        public string Host { get; set; }
 
-		public string Endpoint { get; set; }
+        public string Endpoint { get; set; }
 
 		public T Payload { get; set; }
 	}
@@ -29,7 +31,9 @@ namespace Osprey
 	{
 		public string Service { get; set; }
 
-		public string Endpoint { get; set; }
+        public string Host { get; set; }
+
+        public string Endpoint { get; set; }
 
         public NodeInfo Sender => Osprey.Node.Info;
 

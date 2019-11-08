@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Osprey.Communication;
 
-namespace Osprey
+namespace Osprey.ServiceDiscovery
 {
     public class Broadcaster
 	{

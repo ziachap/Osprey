@@ -14,6 +14,14 @@ namespace Osprey.Serialization
 
     public class JsonSerializer : ISerializer
     {
+        public JsonSerializer()
+        {
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings()
+            {
+                TypeNameHandling = TypeNameHandling.All
+            };
+        }
+
         public string Serialize(object obj) => JsonConvert.SerializeObject(obj);
 
         public T Deserialize<T>(string value) => JsonConvert.DeserializeObject<T>(value);
