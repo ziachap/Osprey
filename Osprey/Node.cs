@@ -41,7 +41,7 @@ namespace Osprey
             Console.WriteLine($"Node started:");
             Console.WriteLine($"  Id:       {Info.Id}");
             Console.WriteLine($"  Service:  {Info.Name}");
-            Console.WriteLine($"  UDP:      {Info.UdpAddress}");
+            Console.WriteLine($"  UDP Broadcaster:      {Info.UdpAddress}");
         }
 
         public void Register(IService host)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +16,7 @@ namespace Osprey.Http
 
 		public static Task<TResponse> Send<TRequest, TResponse>(this HttpService service, HttpMessage<TRequest, TResponse> message)
         {
-            var url = $"http://{service.Url}/{message.Endpoint}";
+            var url = $"{service.Url}/{message.Endpoint}";
 
             switch (message.RequestType)
 			{

@@ -29,10 +29,5 @@ namespace Osprey
         public int UdpPort { get; set; }
         public string UdpAddress => Ip + ":" + UdpPort;
         public Dictionary<string, IService> Services { get; } // TODO: Thread safety
-        /*
-        public T Service<T>(string name) where T : IService
-        {
-            return (T)(Services[name] ?? throw new Exception("Service not found"));
-        }*/
     }
 }

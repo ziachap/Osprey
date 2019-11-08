@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Net;
-using System.Net.Sockets;
-using Osprey.Communication;
 using Osprey.Serialization;
 using Osprey.Utilities;
 
