@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Osprey.Tcp;
 using Osprey.Http;
 using Osprey.ZeroMQ;
 
@@ -15,9 +14,39 @@ namespace Osprey.Demo.Server
 
             using (Osprey.Default())
             using (Osprey.Join("osprey.server"))
-            using (var zmq = new ZeroMQServer("zmq"))
-            //using (var tcp = new TcpServer("mango"))
+            using (var zmq = new ZeroMQServer("zmq1"))
             {
+
+                Task.Run(() =>
+                {
+                    while (true)
+                    {
+                        var data = new TestData()
+                        {
+                            Data1 = 234
+                        };
+
+                        zmq.Publish("A", data);
+
+                        Thread.Sleep(1000);
+                    }
+                });
+
+
+                Task.Run(() =>
+                {
+                    while (true)
+                    {
+                        var data = new TestData()
+                        {
+                            Data1 = 876
+                        };
+
+                        zmq.Publish("B", data);
+
+                        Thread.Sleep(1000);
+                    }
+                });
                 /*
                 StartSendingHttp();
 
@@ -67,5 +96,10 @@ namespace Osprey.Demo.Server
                 }
             }, TaskCreationOptions.LongRunning);
         }
+    }
+
+    internal class TestData
+    {
+        public int Data1 { get; set; }
     }
 }

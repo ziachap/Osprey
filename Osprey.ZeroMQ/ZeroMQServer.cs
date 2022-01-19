@@ -59,8 +59,7 @@ namespace Osprey.ZeroMQ
                             client.OnDisconnected += () =>
                             {
                                 Console.WriteLine("Lost connection to client: "+ message.ClientId);
-                                _clients.TryRemove(message.ClientId, out var c);
-                                c?.Dispose();
+                                _clients.TryRemove(message.ClientId, out _);
                             };
 
                             Console.WriteLine("Registered client: " + message.ClientId);
@@ -68,7 +67,8 @@ namespace Osprey.ZeroMQ
                             var response = Osprey.Serializer.Serialize(new EstablishResponse
                             {
                                 ClientId = message.ClientId,
-                                Endpoint = client.Endpoint.ToString()
+                                StreamEndpoint = client.StreamEndpoint.ToString(),
+                                HeartbeatEndpoint = client.HeartbeatEndpoint.ToString()
                             });
                             
                             server.SendFrame(response);
@@ -83,6 +83,16 @@ namespace Osprey.ZeroMQ
                     }
                 }
             });
+        }
+
+        public void Publish<T>(string topic, T data)
+        {
+            var msg = Osprey.Serializer.Serialize(data);
+
+            foreach (var client in _clients.Values)
+            {
+                client.Publish(topic, msg);
+            }
         }
 
         public void Dispose()
@@ -100,24 +110,38 @@ namespace Osprey.ZeroMQ
     {
         public string ClientId { get; set; }
 
-        public string Endpoint { get; set; }
+        public string StreamEndpoint { get; set; }
+
+        public string HeartbeatEndpoint { get; set; }
     }
 
     public class Client : IDisposable
     {
+        private const int HeartbeatTimeoutMs = 3000;
+        private const int HeartbeatIntervalMs = 1000;
+
         public Action OnDisconnected;
-        public bool _closed = false;
+        private bool _closed = false;
 
         public Client()
         {
-            Socket = new PublisherSocket();
-            Endpoint = Address.GenerateTcpEndpoint();
-            Socket.Bind("tcp://" + Endpoint);
+            OnDisconnected += Dispose;
+
+            StreamSocket = new PublisherSocket();
+            StreamEndpoint = Address.GenerateTcpEndpoint();
+            StreamSocket.Options.SendHighWatermark = 1000;
+            StreamSocket.Bind("tcp://" + StreamEndpoint);
+
+            HeartbeatSocket = new RequestSocket();
+            HeartbeatEndpoint = Address.GenerateTcpEndpoint();
+            HeartbeatSocket.Bind("tcp://" + HeartbeatEndpoint);
         }
 
-        public IPEndPoint Endpoint { get; }
+        public IPEndPoint StreamEndpoint { get; }
+        public IPEndPoint HeartbeatEndpoint { get; }
         
-        public PublisherSocket Socket { get; }
+        public PublisherSocket StreamSocket { get; }
+        public RequestSocket HeartbeatSocket { get; }
 
         public void StartHeartbeatThread()
         {
@@ -125,26 +149,49 @@ namespace Osprey.ZeroMQ
             {
                 while (!_closed)
                 {
-                    Console.WriteLine("Sending heartbeat.");
-                    if (!Socket.SendMoreFrame("__heartbeat").TrySendFrame(TimeSpan.FromSeconds(5), "1"))
+                    if (!HeartbeatSocket.TrySendFrame(TimeSpan.FromMilliseconds(HeartbeatTimeoutMs), "ping"))
                     {
                         Console.WriteLine("Sending heartbeat failed.");
-                        _closed = true;
                         OnDisconnected?.Invoke();
                         return;
                     }
-                    Thread.Sleep(1000);
+                    Console.WriteLine("ping");
+                    if (!HeartbeatSocket.TryReceiveFrameString(TimeSpan.FromMilliseconds(HeartbeatTimeoutMs), out var response))
+                    {
+                        Console.WriteLine("Receiving heartbeat response failed.");
+                        OnDisconnected?.Invoke();
+                        return;
+                    }
+                    Console.WriteLine(response);
+                    Thread.Sleep(HeartbeatIntervalMs);
                 }
             }).ContinueWith(task =>
             {
                 Console.WriteLine("¬ Heartbeat sending thread has ended.");
             }); ;
         }
+
+        private readonly object _streamLock = new object();
+        public void Publish(string topic, string data)
+        {
+            lock (_streamLock)
+            {
+                if (!StreamSocket.TrySendFrame(TimeSpan.FromSeconds(1), topic, true))
+                {
+                    throw new TimeoutException("Timed out while publishing data topic.");
+                }
+                if (!StreamSocket.TrySendFrame(TimeSpan.FromSeconds(1), data))
+                {
+                    throw new TimeoutException("Timed out while publishing data message.");
+                }
+                Console.WriteLine($"Published {topic} = {data}");
+            }
+        }
         
         public void Dispose()
         {
             _closed = true;
-            Socket?.Dispose();
+            StreamSocket?.Dispose();
         }
     }
 }

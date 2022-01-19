@@ -6,7 +6,7 @@ using Osprey.ServiceDescriptors;
 
 namespace Osprey
 {
-
+    [Serializable]
     public class NodeInfo
     {
         public NodeInfo()

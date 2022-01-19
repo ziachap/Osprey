@@ -9,6 +9,8 @@ namespace Osprey.ZeroMQ
 {
     public class ZeroMQClient : IDisposable
     {
+        private const int HeartbeatTimeoutMs = 3000;
+
         public Action OnConnected;
         public Action OnDisconnected;
         
@@ -17,6 +19,7 @@ namespace Osprey.ZeroMQ
         private string _serviceName;
         private string _endpointName;
 
+        private ResponseSocket _heartbeatSocket;
         private SubscriberSocket _streamSocket;
         private bool _connected = false;
         
@@ -28,9 +31,8 @@ namespace Osprey.ZeroMQ
             OnDisconnected += () =>
             {
                 _connected = false;
-                _lastHeartbeat = DateTime.MinValue;
                 _streamSocket?.Dispose();
-                RetryConnect();
+                Task.Run(RetryConnect);
             };
         }
 
@@ -74,6 +76,7 @@ namespace Osprey.ZeroMQ
             var json = Osprey.Serializer.Serialize(data);
 
             string streamEndpoint;
+            string heartbeatEndpoint;
             using (var client = new RequestSocket())
             {
                 client.Connect("tcp://" + service.Endpoint.Address);
@@ -89,9 +92,11 @@ namespace Osprey.ZeroMQ
 
                 var response = Osprey.Serializer.Deserialize<EstablishResponse>(raw);
 
-                Console.WriteLine("Stream address is: " + response.Endpoint);
+                Console.WriteLine("Stream address is: " + response.StreamEndpoint);
+                Console.WriteLine("Heartbeat address is: " + response.HeartbeatEndpoint);
 
-                streamEndpoint = response.Endpoint;
+                streamEndpoint = response.StreamEndpoint;
+                heartbeatEndpoint = response.HeartbeatEndpoint;
             }
 
             // Setup streaming socket
@@ -99,56 +104,81 @@ namespace Osprey.ZeroMQ
             _streamSocket.Options.ReceiveHighWatermark = 1000;
             _streamSocket.Connect("tcp://" + streamEndpoint);
 
+            // Setup heartbeat socket
+            _heartbeatSocket = new ResponseSocket();
+            _heartbeatSocket.Connect("tcp://" + heartbeatEndpoint);
+
             _connected = true;
-            StartHeartbeat();
+            StartHeartbeatThread();
+            StartListenerThread();
 
             OnConnected?.Invoke();
         }
 
-        private DateTime _lastHeartbeat;
-        private void StartHeartbeat()
+        private void StartHeartbeatThread()
         {
-            _lastHeartbeat = DateTime.Now;
-
             Task.Run(() =>
             {
                 Console.WriteLine("Heartbeat started for {0}", _id);
-                _streamSocket.Subscribe("__heartbeat");
-                Console.WriteLine("Subscriber socket connecting...");
-                while (_connected)
+                try
                 {
-                    if (!_streamSocket.TryReceiveFrameString(TimeSpan.FromSeconds(3), out var messageTopic))
-                        throw new TimeoutException("Heartbeat timed out");
-                    if (!_streamSocket.TryReceiveFrameString(TimeSpan.FromSeconds(3), out var messageReceived))
-                        throw new TimeoutException("Heartbeat timed out");
-                    Console.WriteLine(DateTime.Now + " = " + messageReceived);
-                    _lastHeartbeat = DateTime.Now;
+                    while (_connected)
+                    {
+                        if (!_heartbeatSocket.TryReceiveFrameString(TimeSpan.FromMilliseconds(HeartbeatTimeoutMs), out var request))
+                            throw new TimeoutException("Heartbeat timed out");
+
+                        //Console.WriteLine("ping");
+
+                        if (!_heartbeatSocket.TrySendFrame(TimeSpan.FromMilliseconds(HeartbeatTimeoutMs), "pong"))
+                            throw new TimeoutException("Heartbeat timed out");
+
+                        //Console.WriteLine("pong");
+                    }
+                }
+                catch (TimeoutException ex)
+                {
+                    OnDisconnected?.Invoke();
                 }
             }).ContinueWith(task =>
             {
-                Console.WriteLine("¬ Heartbeat receiving thread has ended.");
+                Console.WriteLine("¬ Heartbeat thread has ended.");
             });
+        }
 
+        private void StartListenerThread()
+        {
             Task.Run(() =>
             {
-                while (true)
+                Console.WriteLine("Listener started for {0}", _id);
+                Console.WriteLine("Subscriber socket connecting...");
+
+                while (_connected)
                 {
-                    if (DateTime.Now > _lastHeartbeat.AddSeconds(3))
+                    string messageTopic;
+                    while (!_streamSocket.TryReceiveFrameString(out messageTopic))
                     {
-                        OnDisconnected?.Invoke();
-                        return;
+                        if (!_connected) return;
+                        Thread.Sleep(1);
                     }
-                    Thread.Sleep(10);
+
+                    string messageReceived;
+                    while (!_streamSocket.TryReceiveFrameString(out messageReceived))
+                    {
+                        if (!_connected) return;
+                        Thread.Sleep(1);
+                    }
+
+                    Console.WriteLine($"{DateTime.Now} | {messageTopic} = {messageReceived}");
                 }
             }).ContinueWith(task =>
             {
-                Console.WriteLine("¬ Heartbeat monitoring thread has ended.");
+                Console.WriteLine("¬ Listener thread has ended.");
             });
         }
 
         public void Subscribe(string topic)
         {
-
+            _streamSocket.Subscribe(topic);
         }
 
         public void Dispose()

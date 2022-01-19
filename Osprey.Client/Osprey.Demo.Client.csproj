@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Osprey.Http\Osprey.Http.csproj" />
-    <ProjectReference Include="..\Osprey.Tcp\Osprey.Tcp.csproj" />
     <ProjectReference Include="..\Osprey.ZeroMQ\Osprey.ZeroMQ.csproj" />
     <ProjectReference Include="..\Osprey\Osprey.csproj" />
   </ItemGroup>
