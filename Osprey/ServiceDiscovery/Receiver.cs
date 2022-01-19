@@ -26,21 +26,30 @@ namespace Osprey.ServiceDiscovery
             {
                 while (true)
                 {
-                    var nodeInfo = _client.Receive<NodeInfo>();
-                    var nodeInfoEntry = new NodeInfoEntry(nodeInfo);
+                    try
+                    {
 
-                    Discovered.AddOrUpdate(nodeInfo.Id, nodeInfoEntry, (id, n) => nodeInfoEntry);
+                        var nodeInfo = _client.Receive<NodeInfo>();
+                        var nodeInfoEntry = new NodeInfoEntry(nodeInfo);
+
+                        Discovered.AddOrUpdate(nodeInfo.Id, nodeInfoEntry, (id, n) => nodeInfoEntry);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Failed to receive UDP multicast: " + ex.Message);
+                    }
+
                 }
             }, TaskCreationOptions.LongRunning);
         }
 
-        public NodeInfo Locate(string service)
+        public NodeInfo Locate(string service, bool throwError = false)
         {
             return Active
                        .Where(x => x.Name == service)
                        .OrderBy(x => Guid.NewGuid())
                        .FirstOrDefault()
-                   ?? throw new Exception("Service not found");
+                   ?? (throwError ? throw new ServiceUnavailableException("Service not found") : (NodeInfo)null);
         }
 
         private class NodeInfoEntry
@@ -53,7 +62,20 @@ namespace Osprey.ServiceDiscovery
 
             public NodeInfo Node { get; }
             private DateTime Discovered { get; }
-            public bool Active => DateTime.Now < Discovered.AddSeconds(1.5);
+            public bool Active => DateTime.Now < Discovered.AddSeconds(3);
+        }
+    }
+
+    public class ServiceUnavailableException : Exception
+    {
+        public ServiceUnavailableException()
+        {
+            
+        }
+
+        public ServiceUnavailableException(string message) : base(message)
+        {
+            
         }
     }
 }

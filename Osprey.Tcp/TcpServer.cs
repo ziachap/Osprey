@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Osprey.ServiceDescriptors;
 using Osprey.Utilities;
 
 namespace Osprey.Tcp

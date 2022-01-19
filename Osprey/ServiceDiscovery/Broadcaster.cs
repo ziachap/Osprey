@@ -21,7 +21,7 @@ namespace Osprey.ServiceDiscovery
 			{
 				while (true)
 				{
-					_channel.Send("255.255.255.255", _info);
+					_channel.Send(_info);
 					Thread.Sleep(1000);
 				}
 			}, TaskCreationOptions.LongRunning);

@@ -2,7 +2,8 @@
 using System.Linq;
 using System.Threading;
 using Osprey.Http;
-using Osprey.Tcp;
+using Osprey.ServiceDescriptors;
+using TcpService = Osprey.Tcp.TcpService;
 
 namespace Osprey.Monitor
 {
@@ -45,6 +46,9 @@ namespace Osprey.Monitor
                             break;
                         case TcpService tcpHost:
                             Console.WriteLine($"    TCP [{tcpHost.Name}] ({tcpHost.Endpoint.Address})");
+                            break;
+                        case ZeroMQService mqHost:
+                            Console.WriteLine($"    ZMQ [{mqHost.Name}] ({mqHost.Endpoint.Address})");
                             break;
                     }
                 }

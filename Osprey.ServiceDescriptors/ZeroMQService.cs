@@ -1,10 +1,8 @@
-﻿using Osprey.ServiceDescriptors;
-
-namespace Osprey.Tcp
+﻿namespace Osprey.ServiceDescriptors
 {
-    public class TcpService : IService
+    public class ZeroMQService : IService
     {
-        public TcpService(Endpoint endpoint)
+        public ZeroMQService(Endpoint endpoint)
         {
             Endpoint = endpoint;
         }

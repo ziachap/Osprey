@@ -1,6 +1,4 @@
-﻿using Osprey.ServiceDescriptors;
-
-namespace Osprey.Tcp
+﻿namespace Osprey.ServiceDescriptors
 {
     public class TcpService : IService
     {

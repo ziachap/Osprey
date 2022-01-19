@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Osprey.Communication;
+using Osprey.ServiceDescriptors;
 using Osprey.ServiceDiscovery;
 using Osprey.Utilities;
 
@@ -21,14 +23,19 @@ namespace Osprey
 
         internal Node(string id, string name, IPAddress ip)
         {
+            var port = 55555;
+            var local = Address.GetLocalIpAddress();
+            var remote = IPAddress.Parse("255.255.255.255");
+
             Info = new NodeInfo
 			{
 				Id = id,
 				Name = name,
 				Ip = ip.ToString(),
-                UdpPort = Address.GetUdpPort(),
+                UdpPort = port,
 			};
-            _broadcastChannel = new UdpChannel(new IPEndPoint(IPAddress.Loopback, 12345));
+            
+            _broadcastChannel = new UdpChannel(remote, local, port);
         }
 
         internal void Start()

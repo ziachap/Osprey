@@ -2,19 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Osprey.ServiceDescriptors;
 
 namespace Osprey
 {
-    public interface IService
-    {
-        string Name { get; }
-    }
-
-    public class Endpoint
-    {
-        public string Name { get; set; }
-        public string Address { get; set; }
-    }
 
     public class NodeInfo
     {

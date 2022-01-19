@@ -8,6 +8,7 @@ using Nancy.Bootstrapper;
 using Nancy.Owin;
 using Nancy.Routing;
 using Nancy.TinyIoc;
+using Osprey.ServiceDescriptors;
 using Osprey.Utilities;
 
 namespace Osprey.Http

@@ -14,7 +14,7 @@ namespace Osprey.Tcp
         public static TcpService Stream(this NodeInfo node, string service)
         {
             return (TcpService)(node.Services.Select(x => x.Value).SingleOrDefault(x => x is TcpService && x.Name == service)
-                                 ?? throw new Exception("Located node does not contain a HTTP server"));
+                                 ?? throw new Exception("Located node does not contain a TCP server"));
         }
 
         public static void Subscribe(this TcpService tcpInfo, Action<object> messageHandler)
