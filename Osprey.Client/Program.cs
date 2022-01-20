@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using Nancy;
+using Osprey.Http;
 using Osprey.ZeroMQ;
 
 namespace Osprey.Demo.Client
@@ -11,7 +13,7 @@ namespace Osprey.Demo.Client
             Console.WriteLine("========== OSPREY CLIENT ==========");
             using (Osprey.Default())
             using (Osprey.Join("osprey.client"))
-            //using (new HttpServer<DefaultStartup<DefaultNancyBootstrapper>>("http"))
+            using (new HttpServer<DefaultStartup<DefaultNancyBootstrapper>>("http"))
             {
 
                 var client = new ZeroMQClient("osprey.server", "zmq1");
