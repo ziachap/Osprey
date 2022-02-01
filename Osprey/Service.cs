@@ -16,6 +16,7 @@ namespace Osprey
 
         public string Id { get; set; }
         public string Name { get; set; }
+        public string Environment { get; set; }
         public string Ip { get; set; }
         public int UdpPort { get; set; }
         public string UdpAddress => Ip + ":" + UdpPort;

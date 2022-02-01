@@ -4,45 +4,48 @@ using Osprey.Utilities;
 
 namespace Osprey
 {
-	public static class Osprey
-	{
-        public static Node Node { get; set; }
-        public static ISerializer Serializer { get; set; }
+	public class Osprey : IDisposable
+    {
+        private static Osprey _instance = null;
+        public static Osprey Instance => _instance ?? throw new Exception("Caller has not joined an Osprey network.");
 
-        private class DisposeOsprey : IDisposable
-        { 
-            public void Dispose()
-            {
-                Node.Dispose();
-                Node = null;
-                Serializer = null;
-            }
-        }
-
-        public static IDisposable Default()
-        {
-           Serializer = new JsonSerializer();
-           return new DisposeOsprey();
-        }
-
-		public static Node Join(string service)
+        public Node Node { get; set; }
+        public ISerializer Serializer { get; set; }
+        
+		public static Osprey Join(string service, string environment, Action<Osprey> configuration = null)
 		{
-            if (Node != null) throw new Exception("Cannot join the network more than once.");
+            if (Instance != null) throw new Exception("Cannot join the network more than once.");
+
+            var osprey = new Osprey();
 
 			var ip = Address.GetLocalIpAddress();
 			var id = Guid.NewGuid().ToString();
 
-            Node = new Node(id, service, ip);
-            Node.Start();
+            osprey.Serializer = new JsonSerializer();
+            osprey.Node = new Node(id, service, environment, ip);
 
-            return Node;
+            configuration?.Invoke(osprey);
+
+            osprey.Node.Start();
+
+            _instance = osprey;
+
+            return osprey;
         }
 
-        public static NodeInfo Locate(string node)
+        public NodeInfo Locate(string node)
         {
             if (Node == null) throw new Exception("Caller has not joined an Osprey network");
 
             return Node.Receiver.Locate(node);
+        }
+
+        public void Dispose()
+        {
+            Node.Dispose();
+            Node = null;
+            Serializer = null;
+            _instance = null;
         }
     }
 }

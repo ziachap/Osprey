@@ -15,10 +15,13 @@ namespace Osprey.Http
 {
     public class HttpServer<TStartup> : IDisposable where TStartup : class
     {
+        private static bool _started = false;
         private readonly IWebHost _webHost;
 
         public HttpServer(string name)
         {
+            if (_started) throw new Exception("Cannot start more than one HTTP server on a node");
+
             var url = "http://" + Address.GenerateTcpEndpoint();
 
             _webHost = new WebHostBuilder()
@@ -30,12 +33,15 @@ namespace Osprey.Http
 
             _webHost.RunAsync();
             
-            Osprey.Node.Register(new HttpService(name, url));
+            Osprey.Instance.Node.Register(new HttpService(name, url));
+
+            _started = true;
         }
 
         public void Dispose()
         {
             _webHost?.Dispose();
+            _started = false;
         }
     }
 

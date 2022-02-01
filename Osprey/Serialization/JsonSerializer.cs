@@ -9,7 +9,7 @@ namespace Osprey.Serialization
         {
             JsonConvert.DefaultSettings = () => new JsonSerializerSettings()
             {
-                TypeNameHandling = TypeNameHandling.All
+                TypeNameHandling = TypeNameHandling.Auto
             };
         }
 

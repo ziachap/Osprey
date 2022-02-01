@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Nancy;
 using Osprey.Http;
 using Osprey.ZeroMQ;
@@ -11,12 +12,10 @@ namespace Osprey.Demo.Client
         static void Main(string[] args)
         {
             Console.WriteLine("========== OSPREY CLIENT ==========");
-            using (Osprey.Default())
-            using (Osprey.Join("osprey.client"))
+            using (Osprey.Join("osprey.client", "acceptance"))
             using (new HttpServer<DefaultStartup<DefaultNancyBootstrapper>>("http"))
+            using (var client = new ZeroMQClient("osprey.server", "zmq1"))
             {
-
-                var client = new ZeroMQClient("osprey.server", "zmq1");
 
                 client.OnDisconnected += () => Console.WriteLine("CLIENT IS DISCONNECTED");
 
@@ -24,11 +23,28 @@ namespace Osprey.Demo.Client
 
                 client.OnConnected += () =>
                 {
-                    client.Subscribe("A");
-                    client.Subscribe("B");
+                    client.Subscribe("C");
                 };
 
+                client.On<TestData>("C", x =>
+                {
+                    Interlocked.Increment(ref _count);
+                    Console.WriteLine(x.Data1);
+                });
+
                 client.Connect();
+
+                Task.Run(() =>
+                {
+                    while (true)
+                    {
+                        Thread.Sleep(1000);
+                        var count = _count;
+                        Interlocked.Exchange(ref _count, 0);
+
+                        Console.WriteLine($"Received {count} updates");
+                    }
+                });
 
                 Console.ReadKey();
 
@@ -38,5 +54,12 @@ namespace Osprey.Demo.Client
                 }
             }
         }
+
+        private static int _count = 0;
+    }
+
+    internal class TestData
+    {
+        public string Data1 { get; set; }
     }
 }

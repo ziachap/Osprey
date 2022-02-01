@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Osprey.Http;
@@ -11,11 +12,33 @@ namespace Osprey.Demo.Server
         static void Main(string[] args)
         {
             Console.WriteLine("========== OSPREY SERVER ==========");
-
-            using (Osprey.Default())
-            using (Osprey.Join("osprey.server"))
+            
+            using (Osprey.Join("osprey.server", "acceptance"))
             using (var zmq = new ZeroMQServer("zmq1"))
             {
+                var topics = new HashSet<string>();
+                zmq.OnSubscribe += topic =>
+                {
+                    if (topics.Contains(topic)) return;
+
+                    Task.Run(() =>
+                    {
+                        var rnd = new Random();
+                        while (true)
+                        {
+                            var data = new TestData()
+                            {
+                                Data1 = topic + " = " + rnd.Next(1, 999)
+                            };
+
+                            zmq.Publish(topic, data);
+
+                            Thread.Sleep(8000);
+                        }
+                    });
+
+                    topics.Add(topic);
+                };
 
                 Task.Run(() =>
                 {
@@ -23,30 +46,15 @@ namespace Osprey.Demo.Server
                     {
                         var data = new TestData()
                         {
-                            Data1 = 234
+                            Data1 = "_234_"
                         };
 
                         zmq.Publish("A", data);
 
-                        Thread.Sleep(1000);
+                        Thread.Sleep(50);
                     }
                 });
 
-
-                Task.Run(() =>
-                {
-                    while (true)
-                    {
-                        var data = new TestData()
-                        {
-                            Data1 = 876
-                        };
-
-                        zmq.Publish("B", data);
-
-                        Thread.Sleep(1000);
-                    }
-                });
                 /*
                 StartSendingHttp();
 
@@ -74,7 +82,7 @@ namespace Osprey.Demo.Server
                 {
                     try
                     {
-                        var task = Osprey.Locate("osprey.client")
+                        var task = Osprey.Instance.Locate("osprey.client")
                             .Http()
                             .Send(new HttpMessage<string, string>
                             {
@@ -100,6 +108,6 @@ namespace Osprey.Demo.Server
 
     internal class TestData
     {
-        public int Data1 { get; set; }
+        public string Data1 { get; set; }
     }
 }

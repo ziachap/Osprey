@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using NetMQ;
 using NetMQ.Sockets;
 using Osprey.ServiceDescriptors;
+using Osprey.ZeroMQ.Models;
 
 namespace Osprey.ZeroMQ
 {
@@ -11,8 +14,8 @@ namespace Osprey.ZeroMQ
     {
         private const int HeartbeatTimeoutMs = 3000;
 
-        public Action OnConnected;
-        public Action OnDisconnected;
+        public event Action OnConnected;
+        public event Action OnDisconnected;
         
         private readonly string _id;
 
@@ -21,6 +24,7 @@ namespace Osprey.ZeroMQ
 
         private ResponseSocket _heartbeatSocket;
         private SubscriberSocket _streamSocket;
+        private RequestSocket _requestSocket;
         private bool _connected = false;
         
         public ZeroMQClient(string service, string endpoint)
@@ -60,7 +64,7 @@ namespace Osprey.ZeroMQ
             ZeroMQService service = null;
             while (service == null)
             {
-                service = Osprey.Locate(_serviceName)?.Services[_endpointName] as ZeroMQService;
+                service = Osprey.Instance.Locate(_serviceName)?.Services[_endpointName] as ZeroMQService;
                 Thread.Sleep(10);
 
                 if (DateTime.Now > expires)
@@ -70,13 +74,14 @@ namespace Osprey.ZeroMQ
             // Establish connection to server
             var data = new EstablishRequest
             {
-                ClientId = Osprey.Node.Info.Id
+                ClientId = Osprey.Instance.Node.Info.Id
             };
 
-            var json = Osprey.Serializer.Serialize(data);
+            var json = Osprey.Instance.Serializer.Serialize(data);
 
             string streamEndpoint;
             string heartbeatEndpoint;
+            string requestEndpoint;
             using (var client = new RequestSocket())
             {
                 client.Connect("tcp://" + service.Endpoint.Address);
@@ -90,23 +95,28 @@ namespace Osprey.ZeroMQ
                     throw new TimeoutException("Timed out while waiting for response from server.");
                 };
 
-                var response = Osprey.Serializer.Deserialize<EstablishResponse>(raw);
+                var response = Osprey.Instance.Serializer.Deserialize<EstablishResponse>(raw);
 
                 Console.WriteLine("Stream address is: " + response.StreamEndpoint);
                 Console.WriteLine("Heartbeat address is: " + response.HeartbeatEndpoint);
 
                 streamEndpoint = response.StreamEndpoint;
                 heartbeatEndpoint = response.HeartbeatEndpoint;
+                requestEndpoint = response.ResponseEndpoint;
             }
 
             // Setup streaming socket
             _streamSocket = new SubscriberSocket();
             _streamSocket.Options.ReceiveHighWatermark = 1000;
             _streamSocket.Connect("tcp://" + streamEndpoint);
+            _streamSocket.SubscribeToAnyTopic();
 
             // Setup heartbeat socket
             _heartbeatSocket = new ResponseSocket();
             _heartbeatSocket.Connect("tcp://" + heartbeatEndpoint);
+
+            _requestSocket = new RequestSocket();
+            _requestSocket.Connect("tcp://" + requestEndpoint);
 
             _connected = true;
             StartHeartbeatThread();
@@ -126,13 +136,8 @@ namespace Osprey.ZeroMQ
                     {
                         if (!_heartbeatSocket.TryReceiveFrameString(TimeSpan.FromMilliseconds(HeartbeatTimeoutMs), out var request))
                             throw new TimeoutException("Heartbeat timed out");
-
-                        //Console.WriteLine("ping");
-
                         if (!_heartbeatSocket.TrySendFrame(TimeSpan.FromMilliseconds(HeartbeatTimeoutMs), "pong"))
                             throw new TimeoutException("Heartbeat timed out");
-
-                        //Console.WriteLine("pong");
                     }
                 }
                 catch (TimeoutException ex)
@@ -150,40 +155,105 @@ namespace Osprey.ZeroMQ
             Task.Run(() =>
             {
                 Console.WriteLine("Listener started for {0}", _id);
-                Console.WriteLine("Subscriber socket connecting...");
+                Console.WriteLine("Streaming socket is listening");
 
                 while (_connected)
                 {
-                    string messageTopic;
-                    while (!_streamSocket.TryReceiveFrameString(out messageTopic))
+                    string topic;
+                    while (!_streamSocket.TryReceiveFrameString(out topic))
+                    {
+                        if (!_connected) return;
+                        Thread.Sleep(1);
+                    }
+                    
+                    var handlers = _subscriptions.GetOrAdd(topic, topic => new ConcurrentBag<SubscriptionHandler>());
+
+                    string msg;
+                    while (!_streamSocket.TryReceiveFrameString(out msg))
                     {
                         if (!_connected) return;
                         Thread.Sleep(1);
                     }
 
-                    string messageReceived;
-                    while (!_streamSocket.TryReceiveFrameString(out messageReceived))
+                    foreach (var handler in handlers)
                     {
-                        if (!_connected) return;
-                        Thread.Sleep(1);
+                        var deserialized = Osprey.Instance.Serializer.Deserialize(msg, handler.DeserializeType);
+                        handler.Handler?.Invoke(deserialized);
                     }
 
-                    Console.WriteLine($"{DateTime.Now} | {messageTopic} = {messageReceived}");
+                   //Console.WriteLine($"{DateTime.Now} | {topic} = {msg}");
                 }
             }).ContinueWith(task =>
             {
                 Console.WriteLine("¬ Listener thread has ended.");
             });
         }
-
+        
         public void Subscribe(string topic)
         {
-            _streamSocket.Subscribe(topic);
+            Console.WriteLine("Subscribing to: " + topic);
+
+            if (!_requestSocket.TrySendFrame(TimeSpan.FromMilliseconds(3000), "subscribe", more: true))
+                throw new TimeoutException("Sending request command timed out");
+            if (!_requestSocket.TrySendFrame(TimeSpan.FromMilliseconds(3000), topic))
+                throw new TimeoutException("Sending request parameter timed out");
+            if (!_requestSocket.TryReceiveFrameString(TimeSpan.FromMilliseconds(7000), out _))
+                throw new TimeoutException("Waiting for response timed out");
+
+            Console.WriteLine("Subscribed to: " + topic);
+        }
+        
+        public void Unsubscribe(string topic)
+        {
+            Console.WriteLine("Unsubscribing from: " + topic);
+
+            if (!_requestSocket.TrySendFrame(TimeSpan.FromMilliseconds(3000), "unsubscribe", more: true))
+                throw new TimeoutException("Sending request command timed out");
+            if (!_requestSocket.TrySendFrame(TimeSpan.FromMilliseconds(3000), topic))
+                throw new TimeoutException("Sending request parameter timed out");
+            if (!_requestSocket.TryReceiveFrameString(TimeSpan.FromMilliseconds(7000), out _))
+                throw new TimeoutException("Waiting for response timed out");
+
+            Console.WriteLine("Unsubscribed from: " + topic);
+        }
+
+        private readonly ConcurrentDictionary<string, ConcurrentBag<SubscriptionHandler>> _subscriptions 
+            = new ConcurrentDictionary<string, ConcurrentBag<SubscriptionHandler>>();
+
+        public void On<T>(string topic, Action<T> action) where T : class
+        {
+            var handler = new Action<object>(data =>
+            {
+                var casted = data as T ?? throw new Exception("Cannot cast data to target type");
+                action?.Invoke(casted);
+            });
+
+            _subscriptions.AddOrUpdate(topic, new ConcurrentBag<SubscriptionHandler>()
+            {
+                new SubscriptionHandler(typeof(T), handler)
+            }, (t, h) =>
+            {
+                h.Add(new SubscriptionHandler(typeof(T), handler));
+                return h;
+            });
         }
 
         public void Dispose()
         {
             _streamSocket?.Dispose();
         }
+    }
+
+    internal class SubscriptionHandler
+    {
+        public SubscriptionHandler(Type deserializeType, Action<object> handler)
+        {
+            DeserializeType = deserializeType;
+            Handler = handler;
+        }
+
+        public Type DeserializeType { get; }
+        public Action<object> Handler { get; }
+
     }
 }
