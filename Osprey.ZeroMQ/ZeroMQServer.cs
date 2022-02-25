@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using NetMQ;
 using NetMQ.Sockets;
-using Osprey.ServiceDescriptors;
 using Osprey.Utilities;
 using Osprey.ZeroMQ.Models;
 
@@ -31,15 +30,15 @@ namespace Osprey.ZeroMQ
 
             StartListenerThread();
 
-            var hostInfo = new ZeroMQService(new Endpoint()
+            var hostInfo = new ServiceInfo
             {
                 Name = name,
                 Address = _endpoint.ToString()
-            });
+            };
 
             Console.WriteLine("Created ZeroMQ server on " + _endpoint);
 
-            Osprey.Instance.Node.Register(hostInfo);
+            OSPREY.Network.Node.Register(hostInfo);
         }
 
         private void StartListenerThread()
@@ -55,7 +54,7 @@ namespace Osprey.ZeroMQ
                         {
                             var raw = server.ReceiveFrameString();
                             Console.WriteLine("Received {0}", raw);
-                            var message = Osprey.Instance.Serializer.Deserialize<EstablishRequest>(raw);
+                            var message = OSPREY.Network.Serializer.Deserialize<EstablishRequest>(raw);
 
                             var client = _clients.AddOrUpdate(message.ClientId, id => new Client(), (id, client) =>
                             {
@@ -81,7 +80,7 @@ namespace Osprey.ZeroMQ
 
                             Console.WriteLine("Registered client: " + message.ClientId);
                             
-                            var response = Osprey.Instance.Serializer.Serialize(new EstablishResponse
+                            var response = OSPREY.Network.Serializer.Serialize(new EstablishResponse
                             {
                                 ClientId = message.ClientId,
                                 StreamEndpoint = client.StreamEndpoint.ToString(),
@@ -104,9 +103,14 @@ namespace Osprey.ZeroMQ
             });
         }
 
+        /// <summary>
+        /// Publish data to clients that are subscribed to the given topic.
+        /// </summary>
+        /// <param name="topic"></param>
+        /// <param name="data"></param>
         public void Publish(string topic, object data)
         {
-            var msg = Osprey.Instance.Serializer.Serialize(data);
+            var msg = OSPREY.Network.Serializer.Serialize(data);
 
             _lastValueCache[topic] = msg;
 

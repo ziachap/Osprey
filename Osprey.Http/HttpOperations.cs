@@ -105,7 +105,7 @@ namespace Osprey.Http
 
                 var content = await response.Content.ReadAsStringAsync();
 
-                var deserialized = Osprey.Serializer.Deserialize<T>(content);
+                var deserialized = OSPREY.Network.Serializer.Deserialize<T>(content);
 
                 return deserialized;
             }

@@ -1,16 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
 namespace Osprey.Utilities
 {
+    /// <summary>
+    /// Helper functions for generating addresses and ports.
+    /// </summary>
     public static class Address
     {
         public static IPEndPoint GenerateUdpEndpoint()
         {
-            return new IPEndPoint(GetLocalIpAddress(), GetTcpPort());
+            return new IPEndPoint(GetLocalIpAddress(), GetUdpPort());
         }
 
         public static IPEndPoint GenerateTcpEndpoint()
@@ -37,15 +41,49 @@ namespace Osprey.Utilities
 
         public static IPAddress GetLocalIpAddress()
         {
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (var ip in host.AddressList)
+            var config = OSPREY.Network.Config;
+            
+            if (config.Network.UseDnsAddress)
             {
-                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                Console.WriteLine("Resolving local IP from DNS.");
+
+                var hostName = Dns.GetHostName();
+                var host = Dns.GetHostEntry(hostName);
+
+                Console.WriteLine("DNS host name: " + hostName);
+                Console.WriteLine("DNS hosts: " + string.Join(", ", host.AddressList.Select(x => (object)x)));
+
+                foreach (var ip in host.AddressList)
                 {
-                    return ip;
+                    // ignore localhost
+                    if (ip.ToString().StartsWith("127")) continue;
+
+                    // IPv4 only
+                    if (ip.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        return ip;
+                    }
                 }
+
+                throw new Exception("No network adapters with an IPv4 address in the system!");
             }
-            throw new Exception("No network adapters with an IPv4 address in the system!");
+
+            Console.WriteLine("Resolving local IP from a transient socket.");
+
+            var addr = LocalAddressFromSocket();
+            Console.WriteLine("Socket address: " + addr);
+
+            return addr ?? throw new Exception("Unable to resolve address from a transient socket.");
+        }
+        
+        private static IPAddress LocalAddressFromSocket()
+        {
+            using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+            {
+                socket.Connect("8.8.8.8", 65530);
+                IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+                return endPoint?.Address;
+            }
         }
     }
 }

@@ -1,12 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
 using Osprey.Communication;
-using Osprey.ServiceDescriptors;
 using Osprey.ServiceDiscovery;
 using Osprey.Utilities;
 
 [assembly: InternalsVisibleTo("Osprey.Monitor")]
+
 namespace Osprey
 {
     public class Node : IDisposable
@@ -14,24 +15,23 @@ namespace Osprey
         public NodeInfo Info { get; private set; }
         internal Receiver Receiver { get; private set; }
         internal Broadcaster Broadcaster { get; private set; }
-		
+
         private readonly UdpChannel _broadcastChannel;
 
-        internal Node(string id, string name, string environment, IPAddress ip)
+        internal Node(string id, string name, string environment)
         {
-            var port = 55555;
+            var port = OSPREY.Network.Config.Network.UdpBroadcastPort;
             var local = Address.GetLocalIpAddress();
-            var remote = IPAddress.Parse("255.255.255.255");
+            var remote = IPAddress.Parse(OSPREY.Network.Config.Network.UdpBroadcastRemote);
 
             Info = new NodeInfo
-			{
-				Id = id,
-				Name = name,
+            {
+                NodeId = id,
+                Name = name,
                 Environment = environment,
-                Ip = ip.ToString(),
-                UdpPort = port,
-			};
-            
+                Ip = local.ToString(),
+            };
+
             _broadcastChannel = new UdpChannel(remote, local, port);
         }
 
@@ -39,19 +39,20 @@ namespace Osprey
         {
             Receiver = new Receiver(_broadcastChannel);
             Receiver.Start();
-	        Broadcaster = new Broadcaster(_broadcastChannel, Info);
-	        Broadcaster.Start();
+            Broadcaster = new Broadcaster(_broadcastChannel, Info);
+            Broadcaster.Start();
 
             Console.WriteLine($"Node started:");
-            Console.WriteLine($"  Id:       {Info.Id}");
-            Console.WriteLine($"  Service:  {Info.Name}");
-            Console.WriteLine($"  UDP Broadcaster:      {Info.UdpAddress}");
+            Console.WriteLine($"  Id:".PadRight(12) + Info.NodeId);
+            Console.WriteLine($"  Service:".PadRight(12) + Info.Name);
+            Console.WriteLine($"  Local:".PadRight(12) + Info.Ip);
         }
 
-        public void Register(IService host)
+        public void Register(ServiceInfo service)
         {
-            if(Info.Services.ContainsKey(host.Name)) throw new Exception("Already registered: " + host.Name);
-            Info.Services[host.Name] = host;
+            if (Info.Services.Any(x => x.Name == service.Name))
+                throw new Exception("Already registered: " + service.Name);
+            Info.Services.Add(service);
         }
 
         public void Dispose()

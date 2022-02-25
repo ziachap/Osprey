@@ -8,8 +8,8 @@ namespace Osprey.Communication
     public class UdpChannel : IDisposable
     {
         private readonly UdpClient _client;
-        private readonly IPEndPoint _remote;
         private readonly IPEndPoint _local;
+        private readonly IPEndPoint _remote;
 
         public string LocalEndpoint => _local.ToString();
         public string RemoteEndpoint => _remote.ToString();
@@ -19,30 +19,33 @@ namespace Osprey.Communication
             _remote = new IPEndPoint(remote, port);
             _local = new IPEndPoint(local, port);
 
-            _client = new UdpClient
-            {
-                EnableBroadcast = true
-            };
+            _client = new UdpClient();
+            _client.EnableBroadcast = true;
             _client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            _client.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, 3);
             _client.Client.ReceiveTimeout = 30000;
             _client.Client.Bind(_local);
 
-            if (IsMulticast(remote)) _client.JoinMulticastGroup(remote, local);
+            if (IsMulticast(remote))
+            {
+                Console.WriteLine("Joining multicast group.");
+                _client.JoinMulticastGroup(remote, local);
+            }
         }
 
-        public void Send<T>(T obj)
+        public void Send(string msg)
         {
-            var serialized = Osprey.Serializer.Serialize(obj);
-            var bytes = Encoding.ASCII.GetBytes(serialized);
+            var bytes = Encoding.UTF8.GetBytes(msg);
             _client.Send(bytes, bytes.Length, _remote);
         }
 
-        public T Receive<T>()
+        public string Receive()
         {
-            var _ = null as IPEndPoint;
+            var _ = new IPEndPoint(IPAddress.Any, 0);
             var buffer = _client.Receive(ref _);
-            var message = Encoding.ASCII.GetString(buffer);
-            return Osprey.Serializer.Deserialize<T>(message);
+            var message = Encoding.UTF8.GetString(buffer);
+            Console.WriteLine(message);
+            return message;
         }
 
         public void Dispose()
@@ -52,6 +55,8 @@ namespace Osprey.Communication
 
         private static bool IsMulticast(IPAddress address)
         {
+            Console.WriteLine("Address remote: " + address);
+            Console.WriteLine("Address bytes remote [0]: " + address.GetAddressBytes()[0]);
             return address.GetAddressBytes()[0] >= 224 && address.GetAddressBytes()[0] <= 239;
         }
     }

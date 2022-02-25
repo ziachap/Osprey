@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Osprey.Monitor": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "DockerfileRunArguments": "--network host"
+    }
+  }
+}

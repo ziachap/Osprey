@@ -29,14 +29,23 @@ namespace Osprey.ServiceDiscovery
                     try
                     {
 
-                        var nodeInfo = _client.Receive<NodeInfo>();
-                        var nodeInfoEntry = new NodeInfoEntry(nodeInfo);
+                        var message = _client.Receive();
 
-                        Discovered.AddOrUpdate(nodeInfo.Id, nodeInfoEntry, (id, n) => nodeInfoEntry);
+                        Discovered.AddOrUpdate(message, msg =>
+                        {
+                            var nodeInfo = OSPREY.Network.Serializer.Deserialize<NodeInfo>(message);
+                            var nodeInfoEntry = new NodeInfoEntry(nodeInfo);
+                            return nodeInfoEntry;
+                        }, (msg, node) =>
+                        {
+                            node.Update();
+                            return node;
+                        });
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Failed to receive UDP multicast: " + ex.Message);
+                        Console.WriteLine("Failed to receive UDP multicast");
+                        Console.WriteLine(ex);
                     }
 
                 }
@@ -57,12 +66,19 @@ namespace Osprey.ServiceDiscovery
             public NodeInfoEntry(NodeInfo node)
             {
                 Node = node;
-                Discovered = DateTime.Now;
+                Discovered = DateTime.UtcNow;
+                Timeout = OSPREY.Network.Config.Network.DiscoveryTimeout;
             }
 
+            private DateTime Discovered { get; set; }
+            private int Timeout { get; }
             public NodeInfo Node { get; }
-            private DateTime Discovered { get; }
-            public bool Active => DateTime.Now < Discovered.AddSeconds(3);
+            public bool Active => DateTime.UtcNow < Discovered.AddMilliseconds(Timeout);
+
+            public void Update()
+            {
+                Discovered = DateTime.UtcNow;
+            }
         }
     }
 

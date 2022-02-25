@@ -3,21 +3,20 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Osprey.ServiceDescriptors;
 
 namespace Osprey.Http
 {
     public static class HttpClientExtensions
 	{
-        public static HttpService Http(this NodeInfo node)
+        public static ServiceInfo Http(this NodeInfo node)
         {
-            return (HttpService)(node.Services.Select(x => x.Value).SingleOrDefault(x => x is HttpService)
-                                 ?? throw new Exception("Located node does not contain a HTTP server"));
+            return node.Services.SingleOrDefault(x => x.Type == "http")
+                                 ?? throw new Exception("Located node does not contain a HTTP server");
         }
 
-		public static Task<TResponse> Send<TRequest, TResponse>(this HttpService service, HttpMessage<TRequest, TResponse> message)
+		public static Task<TResponse> Send<TRequest, TResponse>(this ServiceInfo serviceInfo, HttpMessage<TRequest, TResponse> message)
         {
-            var url = $"{service.Url}/{message.Endpoint}";
+            var url = $"http://{serviceInfo.Address}/{message.Endpoint}";
 
             switch (message.RequestType)
 			{

@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using NetMQ;
 using NetMQ.Sockets;
-using Osprey.ServiceDescriptors;
 using Osprey.ZeroMQ.Models;
 
 namespace Osprey.ZeroMQ
@@ -18,20 +17,22 @@ namespace Osprey.ZeroMQ
         public event Action OnDisconnected;
         
         private readonly string _id;
+        private readonly ConcurrentDictionary<string, ConcurrentBag<SubscriptionHandler>> _subscriptions
+            = new ConcurrentDictionary<string, ConcurrentBag<SubscriptionHandler>>();
 
+        private string _nodeName;
         private string _serviceName;
-        private string _endpointName;
 
         private ResponseSocket _heartbeatSocket;
         private SubscriberSocket _streamSocket;
         private RequestSocket _requestSocket;
         private bool _connected = false;
         
-        public ZeroMQClient(string service, string endpoint)
+        public ZeroMQClient(string node, string service)
         {
             _id = Guid.NewGuid().ToString();
+            _nodeName = node;
             _serviceName = service;
-            _endpointName = endpoint;
             OnDisconnected += () =>
             {
                 _connected = false;
@@ -61,10 +62,10 @@ namespace Osprey.ZeroMQ
         {
             // Locate service
             var expires = DateTime.Now.AddSeconds(3);
-            ZeroMQService service = null;
-            while (service == null)
+            ServiceInfo serviceInfo = null;
+            while (serviceInfo == null)
             {
-                service = Osprey.Instance.Locate(_serviceName)?.Services[_endpointName] as ZeroMQService;
+                serviceInfo = OSPREY.Network.Locate(_nodeName)?.Services.First(x => x.Name == _serviceName);
                 Thread.Sleep(10);
 
                 if (DateTime.Now > expires)
@@ -74,17 +75,17 @@ namespace Osprey.ZeroMQ
             // Establish connection to server
             var data = new EstablishRequest
             {
-                ClientId = Osprey.Instance.Node.Info.Id
+                ClientId = OSPREY.Network.Node.Info.NodeId
             };
 
-            var json = Osprey.Instance.Serializer.Serialize(data);
+            var json = OSPREY.Network.Serializer.Serialize(data);
 
             string streamEndpoint;
             string heartbeatEndpoint;
             string requestEndpoint;
             using (var client = new RequestSocket())
             {
-                client.Connect("tcp://" + service.Endpoint.Address);
+                client.Connect("tcp://" + serviceInfo.Address);
                 if (!client.TrySendFrame(TimeSpan.FromSeconds(3), json))
                 {
                     throw new TimeoutException("Timed out while waiting to send to server.");
@@ -95,7 +96,7 @@ namespace Osprey.ZeroMQ
                     throw new TimeoutException("Timed out while waiting for response from server.");
                 };
 
-                var response = Osprey.Instance.Serializer.Deserialize<EstablishResponse>(raw);
+                var response = OSPREY.Network.Serializer.Deserialize<EstablishResponse>(raw);
 
                 Console.WriteLine("Stream address is: " + response.StreamEndpoint);
                 Console.WriteLine("Heartbeat address is: " + response.HeartbeatEndpoint);
@@ -177,7 +178,7 @@ namespace Osprey.ZeroMQ
 
                     foreach (var handler in handlers)
                     {
-                        var deserialized = Osprey.Instance.Serializer.Deserialize(msg, handler.DeserializeType);
+                        var deserialized = OSPREY.Network.Serializer.Deserialize(msg, handler.DeserializeType);
                         handler.Handler?.Invoke(deserialized);
                     }
 
@@ -217,14 +218,11 @@ namespace Osprey.ZeroMQ
             Console.WriteLine("Unsubscribed from: " + topic);
         }
 
-        private readonly ConcurrentDictionary<string, ConcurrentBag<SubscriptionHandler>> _subscriptions 
-            = new ConcurrentDictionary<string, ConcurrentBag<SubscriptionHandler>>();
-
         public void On<T>(string topic, Action<T> action) where T : class
         {
             var handler = new Action<object>(data =>
             {
-                var casted = data as T ?? throw new Exception("Cannot cast data to target type");
+                var casted = data as T ?? throw new Exception("Cannot cast data to target type: " + typeof(T).Name);
                 action?.Invoke(casted);
             });
 
@@ -242,18 +240,18 @@ namespace Osprey.ZeroMQ
         {
             _streamSocket?.Dispose();
         }
-    }
 
-    internal class SubscriptionHandler
-    {
-        public SubscriptionHandler(Type deserializeType, Action<object> handler)
+        private class SubscriptionHandler
         {
-            DeserializeType = deserializeType;
-            Handler = handler;
+            public SubscriptionHandler(Type deserializeType, Action<object> handler)
+            {
+                DeserializeType = deserializeType;
+                Handler = handler;
+            }
+
+            public Type DeserializeType { get; }
+            public Action<object> Handler { get; }
         }
-
-        public Type DeserializeType { get; }
-        public Action<object> Handler { get; }
-
     }
+
 }

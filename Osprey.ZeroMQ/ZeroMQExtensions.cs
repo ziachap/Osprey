@@ -6,8 +6,6 @@ using System.Text;
 using System.Threading;
 using NetMQ;
 using NetMQ.Sockets;
-using Osprey.Serialization;
-using Osprey.ServiceDescriptors;
 
 namespace Osprey.ZeroMQ
 {
@@ -26,11 +24,11 @@ namespace Osprey.ZeroMQ
             return str;
         }
         
-        public static void Send(this ZeroMQService service, string data)
+        public static void Send(this ServiceInfo service, string data)
         {
             using (var client = new RequestSocket())
             {
-                client.Connect("tcp://" + service.Endpoint.Address);
+                client.Connect("tcp://" + service.Address);
                 for (int i = 0; i < 10; i++)
                 {
                     Console.WriteLine("Sending " + data);
@@ -46,7 +44,7 @@ namespace Osprey.ZeroMQ
             var bytes = data switch
             {
                 string s => Encoding.ASCII.GetBytes(s),
-                _ => Encoding.ASCII.GetBytes(Osprey.Instance.Serializer.Serialize(data))
+                _ => Encoding.ASCII.GetBytes(OSPREY.Network.Serializer.Serialize(data))
             };
 
             var length = BitConverter.GetBytes(bytes.Length);

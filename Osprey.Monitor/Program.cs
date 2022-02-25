@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
+using Fclp;
 using Osprey.Http;
-using Osprey.ServiceDescriptors;
+using Osprey.Utilities;
 
 namespace Osprey.Monitor
 {
@@ -10,37 +11,36 @@ namespace Osprey.Monitor
     {
         static void Main(string[] args)
         {
-            using (Osprey.Default())
-            using (Osprey.Join("osprey.monitor"))
+            using (OSPREY.Join("osprey.monitor", "acceptance"))
             {
                 while (true)
                 {
-                    Console.Clear();
+                    //Console.Clear();
                     Console.WriteLine("========== OSPREY MONITOR ==========");
                     Console.WriteLine("");
                     PrintDiscovered();
 
-                    Thread.Sleep(2000);
+                    Thread.Sleep(4000);
                 }
             }
         }
 
         private static void PrintDiscovered()
         {
-            var active = Osprey.Node.Receiver.Active.ToList();
+            var active = OSPREY.Network.Node.Receiver.Active.ToList();
             Console.WriteLine($"-- Active [{active.Count}] --");
             foreach (var node in active)
             {
-                Console.WriteLine($"{node.Id} | {node.Name} | {node.Ip}");
-                foreach (var host in node.Services)
+                Console.WriteLine($"{node.NodeId} | {node.Name} | {node.Ip}");
+                foreach (var service in node.Services)
                 {
-                    switch (host.Value)
+                    switch (service.Type)
                     {
-                        case HttpService httpInfo:
-                            Console.WriteLine($"    HTTP [{httpInfo.Name}] ({httpInfo.Url})");
+                        case "http":
+                            Console.WriteLine($"    HTTP [{service.Name}] ({service.Address})");
                             break;
-                        case ZeroMQService mqHost:
-                            Console.WriteLine($"    ZMQ [{mqHost.Name}] ({mqHost.Endpoint.Address})");
+                        case "zmq":
+                            Console.WriteLine($"    ZMQ [{service.Name}] ({service.Address})");
                             break;
                     }
                 }

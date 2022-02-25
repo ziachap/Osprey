@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Osprey.ServiceDescriptors;
+using Newtonsoft.Json;
 
 namespace Osprey
 {
@@ -11,15 +11,22 @@ namespace Osprey
     {
         public NodeInfo()
         {
-            Services = new Dictionary<string, IService>();
+            Services = new List<ServiceInfo>();
         }
 
-        public string Id { get; set; }
+        [JsonProperty("id")]
+        public string NodeId { get; set; }
+
+        [JsonProperty("n")]
         public string Name { get; set; }
+
+        [JsonProperty("e")]
         public string Environment { get; set; }
+
+        [JsonProperty("ip")]
         public string Ip { get; set; }
-        public int UdpPort { get; set; }
-        public string UdpAddress => Ip + ":" + UdpPort;
-        public Dictionary<string, IService> Services { get; } // TODO: Thread safety
+
+        [JsonProperty("s")]
+        public List<ServiceInfo> Services { get; } // TODO: Thread safety
     }
 }

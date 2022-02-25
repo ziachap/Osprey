@@ -22,7 +22,8 @@ namespace Osprey.ServiceDiscovery
 			{
 				while (true)
 				{
-					_channel.Send(_info);
+                    var serialized = OSPREY.Network.Serializer.Serialize(_info);
+					_channel.Send(serialized);
 					Thread.Sleep(1000);
 				}
 			}, TaskCreationOptions.LongRunning);
