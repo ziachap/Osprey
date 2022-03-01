@@ -3,14 +3,11 @@
 	<metadata>
 		<id>$id$</id>
 		<version>$version$</version>
-		<title>Osprey</title>
+		<title>Osprey.SignalR</title>
 		<authors>Zia Siddique</authors>
 		<owners>Sequoia Capital LLP</owners>
-		<description>A library for decentralized communication and service discovery.</description>
+		<description>SignalR client for use in Osprey networks.</description>
 		<releaseNotes></releaseNotes>
-		<tags>osprey network decentralized service mesh</tags>
+		<tags>osprey network decentralized service mesh signalr</tags>
 	</metadata>
-	<files>
-		<file src="osprey.json"/>
-	</files>
 </package>
