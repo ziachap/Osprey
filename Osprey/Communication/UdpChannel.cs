@@ -28,7 +28,7 @@ namespace Osprey.Communication
 
             if (IsMulticast(remote))
             {
-                Console.WriteLine("Joining multicast group.");
+                OSPREY.Network.Logger.Debug("Joining multicast group.");
                 _client.JoinMulticastGroup(remote, local);
             }
         }
@@ -44,7 +44,7 @@ namespace Osprey.Communication
             var _ = new IPEndPoint(IPAddress.Any, 0);
             var buffer = _client.Receive(ref _);
             var message = Encoding.UTF8.GetString(buffer);
-            Console.WriteLine(message);
+            //OSPREY.Network.Logger.Trace(message);
             return message;
         }
 
@@ -55,8 +55,8 @@ namespace Osprey.Communication
 
         private static bool IsMulticast(IPAddress address)
         {
-            Console.WriteLine("Address remote: " + address);
-            Console.WriteLine("Address bytes remote [0]: " + address.GetAddressBytes()[0]);
+            OSPREY.Network.Logger.Debug("Address remote: " + address);
+            OSPREY.Network.Logger.Debug("Address bytes remote [0]: " + address.GetAddressBytes()[0]);
             return address.GetAddressBytes()[0] >= 224 && address.GetAddressBytes()[0] <= 239;
         }
     }

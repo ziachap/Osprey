@@ -52,7 +52,7 @@ namespace Osprey.ZeroMQ
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Failed to reconnect: " + ex.Message);
+                    OSPREY.Network.Logger.Warn("Failed to reconnect: " + ex.Message);
                 }
                 Thread.Sleep(2000);
             }
@@ -98,8 +98,8 @@ namespace Osprey.ZeroMQ
 
                 var response = OSPREY.Network.Serializer.Deserialize<EstablishResponse>(raw);
 
-                Console.WriteLine("Stream address is: " + response.StreamEndpoint);
-                Console.WriteLine("Heartbeat address is: " + response.HeartbeatEndpoint);
+                OSPREY.Network.Logger.Debug("Stream address is: " + response.StreamEndpoint);
+                OSPREY.Network.Logger.Debug("Heartbeat address is: " + response.HeartbeatEndpoint);
 
                 streamEndpoint = response.StreamEndpoint;
                 heartbeatEndpoint = response.HeartbeatEndpoint;
@@ -130,7 +130,7 @@ namespace Osprey.ZeroMQ
         {
             Task.Run(() =>
             {
-                Console.WriteLine("Heartbeat started for {0}", _id);
+                OSPREY.Network.Logger.Debug("Heartbeat started for " + _id);
                 try
                 {
                     while (_connected)
@@ -147,7 +147,7 @@ namespace Osprey.ZeroMQ
                 }
             }).ContinueWith(task =>
             {
-                Console.WriteLine("¬ Heartbeat thread has ended.");
+                OSPREY.Network.Logger.Debug("¬ Heartbeat thread has ended.");
             });
         }
 
@@ -155,8 +155,8 @@ namespace Osprey.ZeroMQ
         {
             Task.Run(() =>
             {
-                Console.WriteLine("Listener started for {0}", _id);
-                Console.WriteLine("Streaming socket is listening");
+                OSPREY.Network.Logger.Debug("Listener started for " + _id);
+                OSPREY.Network.Logger.Debug("Streaming socket is listening");
 
                 while (_connected)
                 {
@@ -186,7 +186,7 @@ namespace Osprey.ZeroMQ
                 }
             }).ContinueWith(task =>
             {
-                Console.WriteLine("¬ Listener thread has ended.");
+                OSPREY.Network.Logger.Debug("¬ Listener thread has ended.");
             });
         }
         
@@ -201,12 +201,12 @@ namespace Osprey.ZeroMQ
             if (!_requestSocket.TryReceiveFrameString(TimeSpan.FromMilliseconds(7000), out _))
                 throw new TimeoutException("Waiting for response timed out");
 
-            Console.WriteLine("Subscribed to: " + topic);
+            OSPREY.Network.Logger.Debug("Subscribed to: " + topic);
         }
         
         public void Unsubscribe(string topic)
         {
-            Console.WriteLine("Unsubscribing from: " + topic);
+            OSPREY.Network.Logger.Debug("Unsubscribing from: " + topic);
 
             if (!_requestSocket.TrySendFrame(TimeSpan.FromMilliseconds(3000), "unsubscribe", more: true))
                 throw new TimeoutException("Sending request command timed out");
@@ -215,7 +215,7 @@ namespace Osprey.ZeroMQ
             if (!_requestSocket.TryReceiveFrameString(TimeSpan.FromMilliseconds(7000), out _))
                 throw new TimeoutException("Waiting for response timed out");
 
-            Console.WriteLine("Unsubscribed from: " + topic);
+            OSPREY.Network.Logger.Debug("Unsubscribed from: " + topic);
         }
 
         public void On<T>(string topic, Action<T> action) where T : class

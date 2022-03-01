@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <Content Include="osprey.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
@@ -22,9 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Osprey.Http\Osprey.Http.csproj" />
-    <ProjectReference Include="..\Osprey.ZeroMQ\Osprey.ZeroMQ.csproj" />
-    <ProjectReference Include="..\Osprey\Osprey.csproj" />
+    <ProjectReference Include="..\..\Osprey.Http\Osprey.Http.csproj" />
+    <ProjectReference Include="..\..\Osprey.ZeroMQ\Osprey.ZeroMQ.csproj" />
+    <ProjectReference Include="..\..\Osprey\Osprey.csproj" />
   </ItemGroup>
 
 </Project>

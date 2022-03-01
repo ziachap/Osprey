@@ -45,13 +45,13 @@ namespace Osprey.Utilities
             
             if (config.Network.UseDnsAddress)
             {
-                Console.WriteLine("Resolving local IP from DNS.");
+                OSPREY.Network.Logger.Debug("Resolving local IP from DNS.");
 
                 var hostName = Dns.GetHostName();
                 var host = Dns.GetHostEntry(hostName);
 
-                Console.WriteLine("DNS host name: " + hostName);
-                Console.WriteLine("DNS hosts: " + string.Join(", ", host.AddressList.Select(x => (object)x)));
+                OSPREY.Network.Logger.Debug("DNS host name: " + hostName);
+                OSPREY.Network.Logger.Debug("DNS hosts: " + string.Join(", ", host.AddressList.Select(x => (object)x)));
 
                 foreach (var ip in host.AddressList)
                 {
@@ -68,10 +68,10 @@ namespace Osprey.Utilities
                 throw new Exception("No network adapters with an IPv4 address in the system!");
             }
 
-            Console.WriteLine("Resolving local IP from a transient socket.");
+            OSPREY.Network.Logger.Debug("Resolving local IP from a transient socket.");
 
             var addr = LocalAddressFromSocket();
-            Console.WriteLine("Socket address: " + addr);
+            OSPREY.Network.Logger.Debug("Socket address: " + addr);
 
             return addr ?? throw new Exception("Unable to resolve address from a transient socket.");
         }

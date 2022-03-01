@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Fclp;
@@ -14,6 +15,10 @@ namespace Osprey
 	public class OSPREY : IDisposable
     {
         private static OSPREY _instance = null;
+
+        /// <summary>
+        /// Access the singleton instance of the connected Osprey network.
+        /// </summary>
         public static OSPREY Network => _instance ?? throw new Exception("Caller has not joined an Osprey network.");
 
         public Node Node { get; private set; }
@@ -40,7 +45,7 @@ namespace Osprey
             }
             catch (FileNotFoundException ex)
             {
-                Console.WriteLine("No osprey configuration file found.");
+                Logger.Warn("No osprey configuration file found.");
             }
         }
         
@@ -104,6 +109,14 @@ namespace Osprey
             if (Node == null) throw new Exception("Caller has not joined an Osprey network.");
 
             return Node.Receiver.Locate(node, throwError);
+        }
+
+        /// <summary>
+        /// Locate all instances of a service on the network.
+        /// </summary>
+        public IEnumerable<NodeInfo> LocateAll(string node)
+        {
+            return Node.Receiver.LocateAll(node);
         }
 
         /// <summary>

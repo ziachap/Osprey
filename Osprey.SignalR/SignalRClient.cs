@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -9,66 +10,127 @@ using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Osprey.ServiceDiscovery;
 using Osprey.Utilities;
+using Exception = System.Exception;
 
 namespace Osprey.SignalR
 {
-    public class SignalRClient
+    /// <summary>
+    /// Wrapper around HubConnection that locates a SignalR service on an Osprey network.
+    /// </summary>
+    public interface IOspreySignalRClient : IDisposable
+    {
+        /// <summary>
+        /// Connect to the SignalR hub. The client will continually attempt to
+        /// reconnect after a disconnection until disposed.
+        /// </summary>
+        /// <returns></returns>
+        Task StartConnection();
+
+        /// <summary>
+        /// Registers a handler that will be invoked when the hub method with the
+        /// specified method name is invoked.
+        /// </summary>
+        void On<T>(string method, Action<T> handler);
+
+        /// <summary>
+        /// Invokes a hub method on the server using the specified method name and arguments.
+        /// </summary>
+        Task InvokeCoreAsync(string method, params object[] args);
+    }
+    
+    public class OspreySignalRClient : IOspreySignalRClient
     {
         private readonly string _node;
         private readonly string _service;
-        private readonly string _url;
+        private readonly string _hubEndpointUrl;
         private readonly int _retryMilliseconds;
         private readonly Action<IHubConnectionBuilder> _builder;
+        private readonly List<Action<HubConnection>> _rebuildActions = new List<Action<HubConnection>>();
 
         private HubConnection _connection;
+        private bool _disposed;
 
         public event Func<Exception, Task> Closed;
         public event Func<Exception, Task> Reconnecting;
         public event Func<string, Task> Reconnected;
-
-        public SignalRClient(string node, string service, int retryMilliseconds = 3000, Action<IHubConnectionBuilder> builder = null)
+        
+        public OspreySignalRClient(string node, string service, string hubEndpointUrl, int retryMilliseconds = 3000, Action<IHubConnectionBuilder> builder = null)
         {
             _node = node;
             _service = service;
+            _hubEndpointUrl = hubEndpointUrl;
             _retryMilliseconds = retryMilliseconds;
             _builder = builder;
-
-            BuildConnection();
         }
 
-        private async Task BuildConnection()
+        public async Task StartConnection()
         {
-            var url = OSPREY.Network.Locate(_node).FindService(_service).Address;
-            
-            while (string.IsNullOrEmpty(url))
+            var connected = false;
+
+            while (!connected && !_disposed)
             {
-                await Task.Delay(_retryMilliseconds);
-                url = OSPREY.Network.Locate(_node).FindService(_service)?.Address;
+                try
+                {
+                    if (_connection != null)
+                    {
+                        await _connection.DisposeAsync();
+                        _connection = null;
+                    }
+
+                    var url = OSPREY.Network
+                        .Locate(_node, true)
+                        .FindService(_service, true)
+                        .Address;
+
+                    var builder = new HubConnectionBuilder().WithUrl("http://" + url + _hubEndpointUrl);
+
+                    _builder(builder);
+
+                    _connection = builder.Build();
+
+                    foreach (var rebuildAction in _rebuildActions)
+                    {
+                        rebuildAction?.Invoke(_connection);
+                    }
+
+                    _connection.Closed += async ex =>
+                    {
+                        if (_disposed) return;
+                        if (Closed != null) await Closed.Invoke(ex);
+                        await StartConnection();
+                    };
+
+                    _connection.Reconnecting += async ex =>
+                    {
+                        if (_disposed) return;
+                        if (Reconnecting != null) await Reconnecting.Invoke(ex);
+                        await StartConnection();
+                    };
+                    
+                    await _connection.StartAsync();
+
+                    connected = true;
+                    Reconnected?.Invoke("Connected to hub.");
+                }
+                catch (ServiceUnavailableException ex)
+                {
+                    OSPREY.Network.Logger.Warn(ex.ToString());
+                    await Task.Delay(_retryMilliseconds);
+                }
+                catch (Exception ex)
+                {
+                    OSPREY.Network.Logger.Warn(ex.ToString());
+                    await Task.Delay(_retryMilliseconds);
+                }
             }
-
-            var builder = new HubConnectionBuilder().WithUrl(_url);
-
-            _builder(builder);
-
-            _connection = builder.Build();
-
-            _connection.Closed += ex => Closed?.Invoke(ex);
-
-            _connection.Reconnecting += async ex =>
-            {
-                if (Reconnecting != null) await Reconnecting.Invoke(ex);
-                await Task.Delay(_retryMilliseconds);
-                await BuildConnection();
-                await StartAsync();
-            };
-
-            _connection.Reconnected += msg => Reconnected?.Invoke(msg);
         }
-
-        public void On<T>(string method, Action<T> handler) where T : class
+        
+        public void On<T>(string method, Action<T> handler)
         {
-            _connection.On(method, handler);
+            _connection?.On(method, handler);
+            _rebuildActions.Add(connection => connection.On(method, handler));
         }
 
         public Task InvokeCoreAsync(string method, params object[] args)
@@ -76,24 +138,10 @@ namespace Osprey.SignalR
             return _connection.InvokeCoreAsync(method, args);
         }
 
-        public Task StartAsync()
+        public void Dispose()
         {
-            return _connection.StartAsync();
-        }
-    }
-
-    public class RepeatingRetryPolicy : IRetryPolicy
-    {
-        private readonly int _milliseconds;
-
-        public RepeatingRetryPolicy(int milliseconds)
-        {
-            _milliseconds = milliseconds;
-        }
-
-        public TimeSpan? NextRetryDelay(RetryContext retryContext)
-        {
-            return TimeSpan.FromMilliseconds(_milliseconds);
+            _disposed = true;
+            _connection?.DisposeAsync();
         }
     }
 }

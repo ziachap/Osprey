@@ -9,6 +9,7 @@ using NetMQ.Sockets;
 
 namespace Osprey.ZeroMQ
 {
+    // TODO: Don't think we're gonna be using any of these anymore
     public static class ZeroMQExtensions
     {
         public static string ReceiveString(this NetworkStream stream, CancellationToken ct)

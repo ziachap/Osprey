@@ -20,7 +20,7 @@ namespace Osprey.Demo.Server
                 zmq.OnSubscribe += topic =>
                 {
                     if (topics.Contains(topic)) return;
-
+                
                     Task.Run(() =>
                     {
                         var rnd = new Random();
@@ -28,40 +28,40 @@ namespace Osprey.Demo.Server
                         {
                             try
                             {
-
+                                var id = OSPREY.Network.Node.Info.NodeId;
                                 var data = new TestData()
                                 {
-                                    Data1 = topic + " = " + rnd.Next(1, 999)
+                                    Data1 = id + " | " + topic + " = " + rnd.Next(1, 999)
                                 };
-
+                
                                 zmq.Publish(topic, data);
-
+                
                                 Thread.Sleep(500);
                             }
                             catch (Exception ex)
                             {
-
+                
                             }
                         }
                     });
-
+                
                     topics.Add(topic);
                 };
 
-                Task.Run(() =>
-                {
-                    while (true)
-                    {
-                        var data = new TestData()
-                        {
-                            Data1 = "_234_"
-                        };
-
-                        zmq.Publish("A", data);
-
-                        Thread.Sleep(50);
-                    }
-                });
+                //Task.Run(() =>
+                //{
+                //    while (true)
+                //    {
+                //        var data = new TestData()
+                //        {
+                //            Data1 = "_234_"
+                //        };
+                //
+                //        zmq.Publish("A", data);
+                //
+                //        Thread.Sleep(50);
+                //    }
+                //});
 
                 /*
                 StartSendingHttp();

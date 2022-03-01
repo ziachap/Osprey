@@ -10,14 +10,17 @@ namespace Osprey.ServiceDiscovery
     public class Receiver
     {
         private readonly UdpChannel _client;
+        private readonly ConcurrentDictionary<string, NodeInfoEntry> _discovered;
 
-        private ConcurrentDictionary<string, NodeInfoEntry> Discovered { get; }
-        public IEnumerable<NodeInfo> Active => Discovered.Values.Where(x => x.Active).Select(x => x.Node);
+        public IEnumerable<NodeInfo> Active => _discovered.Values.Where(x => x.Active).Select(x => x.Node);
+
+        public event Action<NodeInfo> OnDiscover;
+        public event Action<NodeInfo> OnLost;
 
         public Receiver(UdpChannel client)
         {
             _client = client;
-            Discovered = new ConcurrentDictionary<string, NodeInfoEntry>();
+            _discovered = new ConcurrentDictionary<string, NodeInfoEntry>();
         }
 
         public void Start()
@@ -31,21 +34,23 @@ namespace Osprey.ServiceDiscovery
 
                         var message = _client.Receive();
 
-                        Discovered.AddOrUpdate(message, msg =>
+                        _discovered.AddOrUpdate(message, msg =>
                         {
                             var nodeInfo = OSPREY.Network.Serializer.Deserialize<NodeInfo>(message);
                             var nodeInfoEntry = new NodeInfoEntry(nodeInfo);
+                            OnDiscover?.Invoke(nodeInfo);
                             return nodeInfoEntry;
                         }, (msg, node) =>
                         {
                             node.Update();
                             return node;
                         });
+                        
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Failed to receive UDP multicast");
-                        Console.WriteLine(ex);
+                        OSPREY.Network.Logger.Warn("Failed to receive UDP multicast");
+                        OSPREY.Network.Logger.Error(ex.ToString());
                     }
 
                 }
@@ -59,6 +64,11 @@ namespace Osprey.ServiceDiscovery
                        .OrderBy(x => Guid.NewGuid())
                        .FirstOrDefault()
                    ?? (throwError ? throw new ServiceUnavailableException("Service not found") : (NodeInfo)null);
+        }
+
+        public IEnumerable<NodeInfo> LocateAll(string service)
+        {
+            return Active.Where(x => x.Name == service);
         }
 
         private class NodeInfoEntry

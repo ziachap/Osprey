@@ -37,15 +37,25 @@ namespace Osprey
 
         internal void Start()
         {
-            Receiver = new Receiver(_broadcastChannel);
-            Receiver.Start();
-            Broadcaster = new Broadcaster(_broadcastChannel, Info);
-            Broadcaster.Start();
+            var config = OSPREY.Network.Config.Network;
 
-            Console.WriteLine($"Node started:");
-            Console.WriteLine($"  Id:".PadRight(12) + Info.NodeId);
-            Console.WriteLine($"  Service:".PadRight(12) + Info.Name);
-            Console.WriteLine($"  Local:".PadRight(12) + Info.Ip);
+            if (config.Discover)
+            {
+                Receiver = new Receiver(_broadcastChannel);
+                Receiver.Start();
+            }
+            if (config.Broadcast)
+            {
+                Broadcaster = new Broadcaster(_broadcastChannel, Info);
+                Broadcaster.Start();
+            }
+
+            OSPREY.Network.Logger.Info($"Node started:");
+            OSPREY.Network.Logger.Info($"  Id:".PadRight(12) + Info.NodeId);
+            OSPREY.Network.Logger.Info($"  Service:".PadRight(12) + Info.Name);
+            OSPREY.Network.Logger.Info($"  Local:".PadRight(12) + Info.Ip);
+            OSPREY.Network.Logger.Info($"  Broadcast:".PadRight(12) + config.Broadcast);
+            OSPREY.Network.Logger.Info($"  Discover:".PadRight(12) + config.Discover);
         }
 
         public void Register(ServiceInfo service)

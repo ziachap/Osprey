@@ -94,12 +94,12 @@ namespace Osprey.Http
                 }
                 catch (HttpRequestException ex)
                 {
-                    Console.WriteLine(ex);
+                    OSPREY.Network.Logger.Warn(ex.ToString());
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    OSPREY.Network.Logger.Warn(ex.ToString());
                     throw;
                 }
 

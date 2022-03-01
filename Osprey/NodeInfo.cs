@@ -6,6 +6,9 @@ using Newtonsoft.Json;
 
 namespace Osprey
 {
+    /// <summary>
+    /// Holds information about a node.
+    /// </summary>
     [Serializable]
     public class NodeInfo
     {
@@ -14,6 +17,9 @@ namespace Osprey
             Services = new List<ServiceInfo>();
         }
 
+        /// <summary>
+        /// Unique ID for the node.
+        /// </summary>
         [JsonProperty("id")]
         public string NodeId { get; set; }
 
@@ -27,6 +33,6 @@ namespace Osprey
         public string Ip { get; set; }
 
         [JsonProperty("s")]
-        public List<ServiceInfo> Services { get; } // TODO: Thread safety
+        public List<ServiceInfo> Services { get; }
     }
 }

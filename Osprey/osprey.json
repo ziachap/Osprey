@@ -1,5 +1,7 @@
 {
   "Network": {
+    "Broadcast": true,
+    "Discover": true,
     "UdpBroadcastRemote": "255.255.255.255",
     "UdpBroadcastRemotePort": 55555,
     "BroadcastInterval": 1000,
