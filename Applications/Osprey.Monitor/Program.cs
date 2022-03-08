@@ -31,7 +31,7 @@ namespace Osprey.Monitor
             Console.WriteLine($"-- Active [{active.Count}] --");
             foreach (var node in active)
             {
-                Console.WriteLine($"{node.NodeId} | {node.Name} | {node.Ip}");
+                Console.WriteLine($"{node.Id} | {node.Name} | {node.Ip}");
                 foreach (var service in node.Services)
                 {
                     switch (service.Type)

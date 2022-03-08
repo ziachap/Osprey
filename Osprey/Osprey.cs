@@ -104,19 +104,23 @@ namespace Osprey
         /// <summary>
         /// Attempt to locate a service on the network.
         /// </summary>
-        public NodeInfo Locate(string node, bool throwError = false)
+        public NodeInfo Locate(string node, string environment = null, bool throwError = false)
         {
             if (Node == null) throw new Exception("Caller has not joined an Osprey network.");
 
-            return Node.Receiver.Locate(node, throwError);
+            environment ??= Node.Info.Environment;
+
+            return Node.Receiver.Locate(node, environment, throwError);
         }
 
         /// <summary>
         /// Locate all instances of a service on the network.
         /// </summary>
-        public IEnumerable<NodeInfo> LocateAll(string node)
+        public IEnumerable<NodeInfo> LocateAll(string node, string environment = null)
         {
-            return Node.Receiver.LocateAll(node);
+            environment ??= Node.Info.Environment;
+
+            return Node.Receiver.LocateAll(node, environment);
         }
 
         /// <summary>

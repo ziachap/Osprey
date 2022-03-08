@@ -3,6 +3,9 @@ using Newtonsoft.Json;
 
 namespace Osprey
 {
+    /// <summary>
+    /// Describes a service on a node.
+    /// </summary>
     [Serializable]
     public class ServiceInfo
     {
@@ -14,5 +17,11 @@ namespace Osprey
 
         [JsonProperty("a")]
         public string Address { get; set; }
+    }
+
+    public static class ServiceType
+    {
+        public const string HTTP = "http";
+        public const string ZeroMQ = "zmq";
     }
 }

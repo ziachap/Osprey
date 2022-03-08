@@ -1,7 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <PackageId>Osprey.SignalR</PackageId>
+    <Description>SignalR client for use in Osprey networks.</Description>
+    <Authors>Zia Siddique</Authors>
+    <Company>Sequoia Capital LLP</Company>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>

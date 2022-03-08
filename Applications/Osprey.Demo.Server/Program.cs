@@ -28,7 +28,7 @@ namespace Osprey.Demo.Server
                         {
                             try
                             {
-                                var id = OSPREY.Network.Node.Info.NodeId;
+                                var id = OSPREY.Network.Node.Info.Id;
                                 var data = new TestData()
                                 {
                                     Data1 = id + " | " + topic + " = " + rnd.Next(1, 999)

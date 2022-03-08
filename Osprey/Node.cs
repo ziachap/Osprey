@@ -26,7 +26,7 @@ namespace Osprey
 
             Info = new NodeInfo
             {
-                NodeId = id,
+                Id = id,
                 Name = name,
                 Environment = environment,
                 Ip = local.ToString(),
@@ -51,11 +51,12 @@ namespace Osprey
             }
 
             OSPREY.Network.Logger.Info($"Node started:");
-            OSPREY.Network.Logger.Info($"  Id:".PadRight(12) + Info.NodeId);
-            OSPREY.Network.Logger.Info($"  Service:".PadRight(12) + Info.Name);
-            OSPREY.Network.Logger.Info($"  Local:".PadRight(12) + Info.Ip);
-            OSPREY.Network.Logger.Info($"  Broadcast:".PadRight(12) + config.Broadcast);
-            OSPREY.Network.Logger.Info($"  Discover:".PadRight(12) + config.Discover);
+            OSPREY.Network.Logger.Info($"  Id:".PadRight(14) + Info.Id);
+            OSPREY.Network.Logger.Info($"  Service:".PadRight(14) + Info.Name);
+            OSPREY.Network.Logger.Info($"  Environment:".PadRight(14) + Info.Environment);
+            OSPREY.Network.Logger.Info($"  Local:".PadRight(14) + Info.Ip);
+            OSPREY.Network.Logger.Info($"  Broadcast:".PadRight(14) + config.Broadcast);
+            OSPREY.Network.Logger.Info($"  Discover:".PadRight(14) + config.Discover);
         }
 
         public void Register(ServiceInfo service)

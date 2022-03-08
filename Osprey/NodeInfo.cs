@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 namespace Osprey
 {
     /// <summary>
-    /// Holds information about a node.
+    /// Contains information about a node.
     /// </summary>
     [Serializable]
     public class NodeInfo
@@ -21,7 +21,7 @@ namespace Osprey
         /// Unique ID for the node.
         /// </summary>
         [JsonProperty("id")]
-        public string NodeId { get; set; }
+        public string Id { get; set; }
 
         [JsonProperty("n")]
         public string Name { get; set; }

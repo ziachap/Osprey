@@ -57,18 +57,18 @@ namespace Osprey.ServiceDiscovery
             }, TaskCreationOptions.LongRunning);
         }
 
-        public NodeInfo Locate(string service, bool throwError = false)
+        public NodeInfo Locate(string service, string environment, bool throwError = false)
         {
             return Active
-                       .Where(x => x.Name == service)
+                       .Where(x => x.Name == service && x.Environment == environment)
                        .OrderBy(x => Guid.NewGuid())
                        .FirstOrDefault()
                    ?? (throwError ? throw new ServiceUnavailableException("Service not found") : (NodeInfo)null);
         }
 
-        public IEnumerable<NodeInfo> LocateAll(string service)
+        public IEnumerable<NodeInfo> LocateAll(string service, string environment)
         {
-            return Active.Where(x => x.Name == service);
+            return Active.Where(x => x.Name == service && x.Environment == environment);
         }
 
         private class NodeInfoEntry

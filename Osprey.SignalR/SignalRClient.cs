@@ -21,6 +21,9 @@ namespace Osprey.SignalR
     /// </summary>
     public interface IOspreySignalRClient : IDisposable
     {
+        event Func<Exception, Task> Disconnected;
+        event Func<string, Task> Connected;
+
         /// <summary>
         /// Connect to the SignalR hub. The client will continually attempt to
         /// reconnect after a disconnection until disposed.
@@ -51,10 +54,9 @@ namespace Osprey.SignalR
 
         private HubConnection _connection;
         private bool _disposed;
-
-        public event Func<Exception, Task> Closed;
-        public event Func<Exception, Task> Reconnecting;
-        public event Func<string, Task> Reconnected;
+        
+        public event Func<Exception, Task> Disconnected;
+        public event Func<string, Task> Connected;
         
         public OspreySignalRClient(string node, string service, string hubEndpointUrl, int retryMilliseconds = 3000, Action<IHubConnectionBuilder> builder = null)
         {
@@ -62,7 +64,7 @@ namespace Osprey.SignalR
             _service = service;
             _hubEndpointUrl = hubEndpointUrl;
             _retryMilliseconds = retryMilliseconds;
-            _builder = builder;
+            _builder = builder ?? (b => {});
         }
 
         public async Task StartConnection()
@@ -80,7 +82,7 @@ namespace Osprey.SignalR
                     }
 
                     var url = OSPREY.Network
-                        .Locate(_node, true)
+                        .Locate(_node, environment: null, true)
                         .FindService(_service, true)
                         .Address;
 
@@ -98,21 +100,14 @@ namespace Osprey.SignalR
                     _connection.Closed += async ex =>
                     {
                         if (_disposed) return;
-                        if (Closed != null) await Closed.Invoke(ex);
-                        await StartConnection();
-                    };
-
-                    _connection.Reconnecting += async ex =>
-                    {
-                        if (_disposed) return;
-                        if (Reconnecting != null) await Reconnecting.Invoke(ex);
+                        if (Disconnected != null) await Disconnected.Invoke(ex);
                         await StartConnection();
                     };
                     
                     await _connection.StartAsync();
 
                     connected = true;
-                    Reconnected?.Invoke("Connected to hub.");
+                    Connected?.Invoke("Connected to hub.");
                 }
                 catch (ServiceUnavailableException ex)
                 {

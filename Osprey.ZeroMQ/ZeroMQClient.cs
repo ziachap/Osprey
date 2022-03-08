@@ -75,7 +75,7 @@ namespace Osprey.ZeroMQ
             // Establish connection to server
             var data = new EstablishRequest
             {
-                ClientId = OSPREY.Network.Node.Info.NodeId
+                ClientId = OSPREY.Network.Node.Info.Id
             };
 
             var json = OSPREY.Network.Serializer.Serialize(data);
