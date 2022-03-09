@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <PackageId>Osprey.NLog</PackageId>
+    <Description>NLog logger for Osprey.</Description>
+    <Authors>Zia Siddique</Authors>
+    <Company>Sequoia Capital LLP</Company>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NLog" Version="4.7.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Osprey\Osprey.csproj" />
+  </ItemGroup>
+
+</Project>
