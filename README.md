@@ -5,9 +5,7 @@ Osprey is a .NET library for messaging and streaming across distributed systems 
 Features:
 * Decentralized service discovery
 * Automatic load balancing
-* ZeroMQ streams
-  * Brokerless
-  * Self-recovering
+* SignalR
 * HTTP messaging
 * Simple and lightweight
 
